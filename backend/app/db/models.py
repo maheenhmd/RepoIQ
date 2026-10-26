@@ -21,6 +21,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 NAMING_CONVENTION = {
@@ -117,7 +118,7 @@ class RepositoryFile(TimestampMixin, Base):
     content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     language: Mapped[str | None] = mapped_column(String(64))
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     repository: Mapped[Repository] = relationship(back_populates="files")
     ingestion_job: Mapped[IngestionJob | None] = relationship(
@@ -137,6 +138,8 @@ class IngestionJob(TimestampMixin, Base):
             "status",
         ),
         Index("ix_ingestion_jobs_created_at", "created_at"),
+        Index("ix_ingestion_jobs_queue", "status", "next_attempt_at", "created_at"),
+        CheckConstraint("batch_size BETWEEN 1 AND 50 AND retry_count >= 0", name="ingestion_jobs_batch_limits"),
         CheckConstraint(
             "total_files >= 0 AND eligible_files >= 0 "
             "AND attempted_files >= 0 AND succeeded_files >= 0 "
@@ -169,6 +172,10 @@ class IngestionJob(TimestampMixin, Base):
     target_ref: Mapped[str] = mapped_column(String(255), nullable=False)
     target_commit_sha: Mapped[str | None] = mapped_column(String(64))
     resume_cursor: Mapped[str | None] = mapped_column(String(1000))
+    file_manifest: Mapped[list[dict] | None] = mapped_column(JSONB)
+    batch_size: Mapped[int] = mapped_column(Integer, server_default=text("10"), default=10)
+    retry_count: Mapped[int] = mapped_column(Integer, server_default=text("0"), default=0)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     total_files: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default=text("0")
     )

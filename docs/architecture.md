@@ -2,7 +2,7 @@
 
 > **Status:** Living project specification / source of truth for implementation decisions  
 > **Last updated:** 2026-10-26  
-> **Project stage:** GitHub ingestion preview and PostgreSQL foundation implemented; database migration and tests **not yet run**  
+> **Project stage:** Automatic PostgreSQL-backed ingestion implemented; new queue migration and runtime verification pending owner execution. Initial migration applied to Neon (owner reported).  
 > **Primary goal:** Build a GitHub-repository-aware AI mock interviewer while learning backend and AI engineering systematically.
 
 ## 0. Read this first (humans and coding agents)
@@ -50,7 +50,7 @@ This document records the **current agreements and constraints**. It is **not** 
 | Python tooling | **uv**, `pyproject.toml`, `.venv`, `uv.lock` | LOCKED | `uv sync`, `uv add`, `uv run`; do not mix ad hoc global pip installs. |
 | Database | **PostgreSQL**, initially **Neon** | LOCKED | **Do not substitute SQLite**. Keep DB access portable to another PostgreSQL host. |
 | Database access | SQLAlchemy 2.x + `psycopg` (sync) | IMPLEMENTED, NOT VERIFIED | Neon pooled URL for API runtime; direct URL for DDL/migrations. |
-| Schema migrations | Alembic | IMPLEMENTED, NOT RUN | Initial reversible repository-ingestion migration is version controlled. |
+| Schema migrations | Alembic | IMPLEMENTED | Initial revision applied (owner reported); optional-content revision pending. |
 | Vector storage | PostgreSQL **pgvector** | PLANNED | Validate indexing performance/cost before adding extra vector infrastructure. |
 | LLM integration | Provider-adapter behind `llm_client.py` | LOCKED PATTERN | Actual provider/model: **TBD**. Free/low-cost preference; strict usage caps. |
 | Embeddings | Provider/model behind indexing adapter | TBD | May be local or API-based; dimension/model must be recorded with stored vectors. |
@@ -146,6 +146,7 @@ RepoIQ/
 | `services/` | Reusable application use cases and AI logic | HTTP-specific concerns or hard-coded credentials |
 | `integrations/` | GitHub, LLM and other external API adapters | Business rules, interview scoring policy |
 | `db/` | SQLAlchemy models, engine/session and persistence logic | HTTP router registration, prompt formatting |
+| `workers/` | Independently runnable queue polling and graceful shutdown | HTTP requests, GitHub parsing or database queries |
 | `core/` | Typed settings, shared infrastructure configuration | Unrelated product workflows |
 | `frontend/src/app/` | Next.js pages/layout, routing | Python business logic or private API keys |
 | `frontend/src/components/` | Reusable UI components | Direct privileged DB/LLM access |
@@ -230,22 +231,45 @@ The voice worker may need a secure service-to-service boundary instead of import
 - Token/room creation must happen through authorized server-side code, never secret credentials shipped to the browser.
 - **Acceptance:** real two-way audio on supported browsers, question grounding, controlled termination and graceful fallback.
 
-## 7. Phase 1 data model (IMPLEMENTED, MIGRATION NOT RUN)
+## 7. Database foundation and optional source storage
 
 The initial PostgreSQL migration defines four ingestion-focused tables:
 
 - `repositories`: canonical GitHub identity, metadata, default branch, last successfully ingested commit and timestamps.
-- `repository_files`: repository/job links, snapshot commit, path, blob/content hashes, language, size and source content. A repository/commit/path constraint makes retries idempotent.
+- `repository_files`: repository/job links, snapshot commit, path, blob/content hashes, language, size and optional source content. A repository/commit/path constraint makes retries idempotent.
 - `ingestion_jobs`: status, target ref/commit, resume cursor, progress counters, retry/rate-limit state and lifecycle timestamps.
 - `ingestion_errors`: job/file association, stable path, typed error details, retryability and attempt number.
 
 UUID primary keys, cascading/nullable foreign keys, check constraints and query-oriented indexes are included. Runtime uses Neon's pooled endpoint; Alembic uses a direct endpoint with no local connection pool. Interview, chunk/vector, user ownership and retention schemas remain TBD for later milestones. **Never run a destructive migration or data reset without approval and backups.**
+
+Revision `20261026_0002`, following the applied `20261026_0001`, makes only `repository_files.content` nullable. NULL means source text was not retained; an empty string still means an empty file. Existing content and retrieval metadata are preserved. Future retrieval can use repository identity, path and commit/blob SHA; future RAG chunks and pgvector embeddings can reference the existing file IDs. No retrieval or vector logic is added here. Downgrade requires restoring genuine content for every NULL row first; otherwise PostgreSQL rejects it without substituting or deleting data.
+
+### Phase 2.2 automatic ingestion
+
+Revision `20261026_0003` adds a bounded JSONB file manifest, batch size, retry count, retry timestamp and queue index to `ingestion_jobs`. Existing migrations remain unchanged. The API queues a job before any GitHub requests; a separate `app.workers.ingestion` process pins a commit, persists discovery, then processes bounded batches. The manifest freezes eligibility and order across restarts. Metadata and SHA-256 hashes are retained, while full file content remains NULL.
+
+Workers claim due jobs with `FOR UPDATE SKIP LOCKED`. The transaction stays open for one bounded stage/batch, atomically committing files, errors and checkpoint. PostgreSQL releases the lock on disconnect; the worker also sets a 120-second idle transaction timeout. A transaction-level advisory lock serializes jobs for the same repository. No session-level advisory locks are used with Neon's transaction pooler. After a crash, uncommitted work can be fetched again, but committed files are skipped and unique snapshot/path constraints prevent duplicate records.
+
+Retries and backoff are durable. Exhausted ordinary file errors advance the checkpoint and allow other files to finish; the final job is failed if any file failed. Exhausted discovery or rate-limit retries fail the job with remaining files preserved. Status polling never performs ingestion. A running or appropriately scheduled worker is required locally and in production; Neon stores jobs but does not execute Python. See [ingestion operations](ingestion.md) for limits and commands. Chunking, pgvector, retention and authentication remain future work.
+
+### Phase 3.1 source chunking
+
+`app.services.chunking.chunk_source` is a pure, reusable Python AST chunker with immutable contracts in `schemas/chunking.py`. It extracts qualified functions, async functions, classes and methods; partitions nested bodies without source overlap; and retains bounded scope/module context. Size limits, stable IDs and precise source coordinates support later indexing. Eligible unsupported languages and Python syntax errors use labelled bounded text fallback. It reuses existing filtering and file-size safeguards, and does not fetch, persist, execute, embed or call models. See [chunking contract and manual examples](chunking.md). Implementation is not runtime-verified; ingestion remains unchanged.
+
+### Phase 3.2 hybrid chunking
+
+The same pure chunking API selects Tree-sitter for JavaScript/JSX, TypeScript, TSX, Java and C#, using `tree-sitter-language-pack==0.13.0` and locked native dependencies. Python retains its standard-library AST behavior and IDs; other eligible languages retain text fallback. The new parser shares scope partitioning, bounds, metadata and stable-ID generation; malformed trees fall back explicitly. No ingestion, persistence, endpoints or embeddings change. See `docs/chunking.md` for manual verification; runtime checks remain owner-run.
 
 ## 8. API contracts (existing vs proposed)
 
 **Existing code paths (verified by inspection, not by HTTP test):**
 - `GET /health` → intended `{ "status": "ok" }`.
 - Routers mounted at `/api/repositories` and `/api/interviews`.
+- `POST /api/repositories/ingest` queues ingestion (202); accepts URL, optional ref, request_id and batch_size.
+- `GET /api/repositories/ingest/{job_id}` returns committed progress without processing work.
+- `GET /api/repositories/ingest/{job_id}/errors` returns paginated persisted errors.
+- `POST /api/repositories/ingest/{job_id}/cancel` cancels between batches; returns 409 if a worker currently holds the job lock.
+- Existing `/api/repositories/ingest/preview` and other routes retain their contracts.
 
 **Possible API shapes (PROPOSED, not implemented contracts):**
 - `POST /api/repositories` — validate/register an import request.
@@ -380,4 +404,4 @@ When the frontend milestone begins, inspect existing source and scripts before r
 
 ---
 
-**Current next action:** The owner should configure Neon URLs, run `uv sync`, inspect the initial Alembic SQL, and then apply the migration manually. Persistence must be wired into ingestion in a separate task.
+**Current next action:** The owner should manually verify the standalone chunker using `docs/chunking.md`. Integration with indexing/persistence is a separate phase; automatic ingestion is working per the owner's report.

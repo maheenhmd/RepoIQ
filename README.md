@@ -4,6 +4,8 @@
 
 **RepoIQ is an AI-powered, repository-aware technical interview platform** that transforms GitHub projects into personalized technical interviews.
 
+Public GitHub metadata, file discovery/filtering, bounded ingestion preview, automatic PostgreSQL-backed ingestion, and multi-language code chunking are implemented. See [ingestion documentation](docs/ingestion.md) and [chunking documentation](docs/chunking.md). (feat: add automatic ingestion and multi-language code chunking)
+
 Instead of asking generic programming questions, RepoIQ analyzes your actual codebase and challenges you to explain its architecture, implementation, and engineering decisions.
 
 > 🚧 **Status:** Under active development. GitHub integration and PostgreSQL foundation are implemented; RAG and AI interviews are upcoming.

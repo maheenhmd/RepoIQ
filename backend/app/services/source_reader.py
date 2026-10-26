@@ -25,6 +25,12 @@ def fetch_source_file(url: str, path: str) -> dict:
 
     data = get_github_file(owner, repo, path)
 
+    return decode_source_file(data, path, f"{owner}/{repo}")
+
+
+def decode_source_file(data: dict, path: str, full_name: str) -> dict:
+    """Validate and decode GitHub content without executing it."""
+
     if not isinstance(data, dict) or data.get("type") != "file":
         raise GitHubClientError(
             422, "The requested path is not a regular file"
@@ -80,7 +86,7 @@ def fetch_source_file(url: str, path: str) -> dict:
         ) from exc
 
     return {
-        "full_name": f"{owner}/{repo}",
+        "full_name": full_name,
         "path": path,
         "sha": data["sha"],
         "size": len(raw_content),

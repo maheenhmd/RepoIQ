@@ -40,4 +40,31 @@ After implementation, report:
 - Known limitations
 - Tests: NOT RUN (handled by project owner)
 
+## Token-Efficient Execution Policy
+
+- Optimize for **correct implementation with minimum token usage**, not minimum code quality.
+- Follow `AGENTS.md` and read `docs/architecture.md` as required. Do not repeatedly reread unchanged files.
+- Inspect only task-relevant code after the mandatory architecture review.
+- Reuse existing implementations, patterns, and dependencies.
+- Work directly in the existing workspace; no unnecessary scaffolding.
+- Make focused edits. Avoid rewriting complete files when small changes are sufficient.
+- Do not explain obvious code, repeat requirements, or output full file contents.
+- Avoid lengthy plans, progress narration, and unnecessary tool calls.
+- Implement the assigned task completely instead of stopping after each small edit for confirmation.
+- Ask questions only when blocked by missing essential information, conflicting locked decisions, or risky/destructive changes.
+- Do not create, modify, or execute tests unless explicitly requested.
+- Do not run applications, migrations, or deployments unless explicitly requested.
+- Final response: maximum 150 words covering changed files, required manual commands, blockers, and risks.
+- Never sacrifice correctness, security, or maintainability to save tokens.
+
 If a task requires a different framework, database, storage provider, large rewrite, destructive migration, or paid dependency, **ask for approval first**.
+
+
+## Context Management & Token Efficiency
+
+- At the beginning of a new session, read `AGENTS.md` and `docs/architecture.md` once.
+- For subsequent tasks in the same session, reuse existing context and inspect only relevant or changed files.
+- Re-read documentation when context is missing, architecture changes, or the task requires it.
+- Never assume remembered code is current; inspect relevant files before editing.
+- Avoid repeating plans, explanations, and large file outputs.
+- Prioritize correct, focused implementation with minimal token usage.
