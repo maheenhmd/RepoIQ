@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local databases and generated indexes
+*.db
+*.sqlite3
+data/
+indexes/
+
+# Frontend
+node_modules/
+.next/
+out/
+
+# Editors & OS
+.vscode/
+.DS_Store
