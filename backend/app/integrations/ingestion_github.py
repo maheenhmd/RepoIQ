@@ -4,7 +4,7 @@ import json
 import re
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from time import monotonic
+from time import monotonic, sleep
 from urllib.parse import quote
 
 import httpx
@@ -36,7 +36,7 @@ def retry_delay(headers: httpx.Headers) -> int:
         delays.append(int(headers.get("x-ratelimit-reset", "0")) - int(now.timestamp()))
     except ValueError:
         pass
-    return min(max(delays), 86400)
+    return max(delays)
 
 
 def require_sha(value: object) -> str:
@@ -48,6 +48,7 @@ def require_sha(value: object) -> str:
 class IngestionGitHub:
     def __init__(self, settings: Settings, deadline: float):
         self.deadline = deadline
+        self.next_request = monotonic()
         headers = {"Accept": "application/vnd.github+json", "User-Agent": "RepoIQ"}
         if settings.github_token and settings.github_token.get_secret_value():
             headers["Authorization"] = f"Bearer {settings.github_token.get_secret_value()}"
@@ -61,6 +62,11 @@ class IngestionGitHub:
 
     def get(self, path: str, *, params: dict | None = None,
             max_bytes: int = 1024 * 1024) -> dict:
+        pause = max(0, self.next_request - monotonic())
+        if monotonic() + pause >= self.deadline:
+            raise IngestionFetchError("Batch time budget reached", code="timeout", retryable=True)
+        sleep(pause)
+        self.next_request = monotonic() + 1.0
         remaining = self.deadline - monotonic()
         if remaining <= 0:
             raise IngestionFetchError("Batch time budget reached", code="timeout", retryable=True)
@@ -68,7 +74,18 @@ class IngestionGitHub:
             with self.client.stream("GET", "https://api.github.com/repos/" + path,
                                     params=params, timeout=min(5.0, remaining)) as response:
                 if response.status_code in (403, 429):
-                    # Conservatively pause on 403 too (secondary limits may lack headers).
+                    limited = response.status_code == 429 or response.headers.get('x-ratelimit-remaining') == '0' or 'retry-after' in response.headers
+                    if not limited:
+                        # Secondary-limit messages may lack rate-limit headers.
+                        detail = bytearray()
+                        for part in response.iter_bytes(chunk_size=1024):
+                            if len(detail) + len(part) > 8192 or monotonic() >= self.deadline:
+                                break
+                            detail.extend(part)
+                        message = detail.decode('utf-8', errors='replace').lower()
+                        limited = 'rate limit' in message or 'abuse detection' in message
+                    if not limited:
+                        raise IngestionFetchError('GitHub access denied; check token permissions and repository visibility', code='403')
                     raise IngestionFetchError("GitHub rate limit or access restriction",
                                               code="rate_limit", retryable=True,
                                               retry_after=retry_delay(response.headers))

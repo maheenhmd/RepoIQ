@@ -7,7 +7,8 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   const uuid = '[0-9a-fA-F-]{36}';
   const allowed = request.method === 'GET'
     ? route === 'ready' || new RegExp(`^api/interviews/${uuid}(/report)?$`).test(route)
-    : route === 'api/interviews/start' || new RegExp(`^api/interviews/${uuid}/answers$`).test(route);
+      || new RegExp(`^api/repositories/(ingest/${uuid}|${uuid}/ready)$`).test(route)
+    : ['api/interviews/start', 'api/repositories/ingest', 'api/repositories/lookup', 'api/interviews/lookup'].includes(route) || new RegExp(`^api/interviews/${uuid}/answers$`).test(route);
   if (!allowed) return NextResponse.json({ detail: 'Route unavailable' }, { status: 404 });
   try {
     const body = request.method === 'POST' ? await request.text() : undefined;

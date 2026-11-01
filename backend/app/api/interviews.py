@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 
 from app.integrations.llm_client import LLMError
 from app.schemas.interview import StartInterview, CandidateAnswer, InterviewResponse, InterviewHistory, InterviewReport
@@ -8,6 +8,24 @@ from app.services import question_generator as interviews
 from app.services.code_search import SearchError
 
 router = APIRouter()
+
+
+@router.post('/lookup')
+def lookup_interviews(repository_id: UUID = Body(embed=True)):
+    from sqlalchemy import select
+    from sqlalchemy.exc import SQLAlchemyError
+    from app.db.ingestion import request_session
+    from app.db.models import InterviewSession
+    try:
+        with request_session() as session:
+            rows = session.execute(select(InterviewSession.id, InterviewSession.status,
+                InterviewSession.updated_at, InterviewSession.initial_request).where(
+                InterviewSession.repository_id == repository_id).order_by(
+                InterviewSession.updated_at.desc(), InterviewSession.id).limit(20)).all()
+            return [{'session_id': row.id, 'status': row.status,
+                     'updated_at': row.updated_at, 'topic': row.initial_request.get('topic', '')} for row in rows]
+    except SQLAlchemyError:
+        raise HTTPException(503, 'Interview history unavailable') from None
 
 
 def _call(operation, *args):

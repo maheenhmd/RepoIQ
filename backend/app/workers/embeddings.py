@@ -14,9 +14,12 @@ from app.services.embeddings import EmbeddingService
 def main() -> None:
     parser = argparse.ArgumentParser(description="Persist local code embeddings")
     parser.add_argument("--once", action="store_true", help="Process at most one batch")
+    parser.add_argument("--watch", action="store_true", help="Stay alive and poll for newly ingested chunks")
     parser.add_argument("--batch-size", type=int, choices=(4, 8, 16),
                         help="Override EMBEDDING_BATCH_SIZE for this run")
     args = parser.parse_args()
+    if args.once and args.watch:
+        parser.error('--once and --watch are mutually exclusive')
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     for name in ("httpx", "httpcore", "sentence_transformers", "transformers", "huggingface_hub"):
         logging.getLogger(name).setLevel(logging.ERROR)
@@ -24,8 +27,14 @@ def main() -> None:
     batch_size = args.batch_size or settings.embedding_batch_size
     service = EmbeddingService(settings)
     stopping = Event()
+    reason = 'queue_drained'
+    def stop(signum, _frame):
+        nonlocal reason
+        reason = f'signal_{signum}'
+        stopping.set()
     for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, lambda *_: stopping.set())
+        signal.signal(sig, stop)
+    logging.info("Embedding worker started watch=%s", args.watch)
     failures, total, ready = 0, 0, False
     while True:
         if stopping.is_set():
@@ -58,11 +67,18 @@ def main() -> None:
             logging.error("Embedding batch failed (%s); progress rolled back; attempt %d/%d",
                           type(exc).__name__, failures, settings.embedding_max_attempts)
             if failures >= settings.embedding_max_attempts:
+                logging.error("Embedding worker stopped reason=retry_exhausted")
                 raise SystemExit(1) from None
             stopping.wait(min(60, 5 * 2 ** (failures - 1)))
             continue
-        if args.once or not count:
+        if args.once:
+            reason = 'once'
             break
+        if not count:
+            if not args.watch:
+                break
+            stopping.wait(10)
+    logging.info("Embedding worker stopped reason=%s total=%d", reason, total)
 
 
 if __name__ == "__main__":

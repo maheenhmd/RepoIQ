@@ -6,6 +6,7 @@ import type { FormEvent, KeyboardEvent } from 'react';
 import Image from 'next/image';
 
 import InterviewReport from '@/components/InterviewReport';
+import { Sources } from '@/components/QuestionCard';
 import { ApiError, interviewApi } from '@/lib/api';
 import type {
   Difficulty,
@@ -30,8 +31,9 @@ type SavedSession = {
 
 const STORAGE_KEY = 'repoiq-interview';
 
-const DEFAULT_REPO =
-  'a7f04a87-1380-4a80-871f-3fddd665535f';
+type ImportJob = { id: string; repository_id: string; status: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'; processed_files: number; total_files: number; progress_percent: number; error_summary: string | null; rate_limited: boolean; next_attempt_at: string | null };
+type ImportState = { url: string; request_id: string; job?: ImportJob };
+const IMPORT_KEY = 'repoiq-import';
 
 const DEFAULT_TOPIC =
   'HTTP authentication and error handling';
@@ -41,7 +43,112 @@ export default function InterviewPage() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [report, setReport] = useState<Report | null>(null);
 
-  const [repo, setRepo] = useState(DEFAULT_REPO);
+  const [repo, setRepo] = useState('');
+  const [githubUrl, setGithubUrl] = useState('');
+  const [importState, setImportState] = useState<ImportState | null>(null);
+  const [importBusy, setImportBusy] = useState(false);
+  const [indexed, setIndexed] = useState(false);
+  const [importMessage, setImportMessage] = useState('Import a public GitHub repository to begin.');
+  const [pollRound, setPollRound] = useState(0);
+  const [sessions, setSessions] = useState<{ session_id: string; status: string; topic: string; updated_at: string }[]>([]);
+  const [detecting, setDetecting] = useState(false);
+  useEffect(() => {
+    if (current || !githubUrl.trim() || importBusy) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setDetecting(true);
+      try {
+        const result = await interviewApi<{ repository_id: string | null; indexing_complete: boolean }>('api/repositories/lookup', { url: githubUrl.trim() });
+        if (cancelled) return;
+        setRepo(result.repository_id ?? ''); setIndexed(result.indexing_complete);
+        if (result.repository_id) {
+          const history = await interviewApi<typeof sessions>('api/interviews/lookup', { repository_id: result.repository_id });
+          if (cancelled) return;
+          setSessions(history);
+          setImportMessage(result.indexing_complete ? 'Repository found. Resume a conversation or start a new interview.' : 'Repository found; indexing is not complete.');
+        } else { setSessions([]); setImportMessage('Repository not indexed yet. Import it to begin.'); }
+      } catch (err) {
+        if (!cancelled) { setSessions([]); setImportMessage(err instanceof Error ? err.message : 'Lookup unavailable.'); }
+      } finally { if (!cancelled) setDetecting(false); }
+    }, 600);
+    return () => { cancelled = true; clearTimeout(timer); setDetecting(false); };
+  }, [githubUrl, current, importBusy]);
+  async function openSaved(id: string) {
+    if (busy) return;
+    setBusy(true); setError('');
+    try { await loadSession(id); setPending(null); setAnswer(''); saveSession(id, null, ''); }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to restore conversation.'); }
+    finally { setBusy(false); }
+  }  const importLock = useRef(false);
+  function rememberImport(value: ImportState) {
+    setImportState(value);
+    try { localStorage.setItem(IMPORT_KEY, JSON.stringify(value)); }
+    catch { setImportMessage('Browser storage unavailable; keep this tab open.'); }
+  }
+  async function importRepository() {
+    if (importLock.current || busy || pending) return;
+    let url: URL;
+    try {
+      url = new URL(githubUrl.trim());
+      if (url.protocol !== 'https:' || url.hostname !== 'github.com' || url.port || url.username || url.password || url.search || url.hash || !/^\/[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+\/?$/.test(url.pathname)) throw new Error();
+    } catch { setImportMessage('Use https://github.com/owner/repository (public repositories only).'); return; }
+    const canonical = `https://github.com${url.pathname.replace(/\/$/, '').replace(/\.git$/, '')}`;
+    const previous = importState;
+    const request = previous && previous.url === canonical && !['failed', 'cancelled'].includes(previous.job?.status ?? '')
+      ? previous : { url: canonical, request_id: crypto.randomUUID() };
+    importLock.current = true; setImportBusy(true); setIndexed(false); setRepo('');
+    rememberImport(request); setImportMessage('Submitting import…');
+    try {
+      const job = await interviewApi<ImportJob>('api/repositories/ingest', { url: request.url, request_id: request.request_id });
+      rememberImport({ ...request, job }); setRepo(job.repository_id); setPollRound(n => n + 1);
+    } catch (err) { setImportMessage(err instanceof Error ? err.message : 'Import unavailable. Retry safely.'); }
+    finally { importLock.current = false; setImportBusy(false); }
+  }
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(IMPORT_KEY) ?? sessionStorage.getItem(IMPORT_KEY) ?? 'null') as ImportState | null;
+      if (saved && typeof saved.url === 'string' && saved.request_id) {
+        rememberImport(saved); setGithubUrl(saved.url);
+        if (saved.job) setRepo(saved.job.repository_id);
+        else setImportMessage('Import response interrupted. Retry import to recover the same request.');
+      }
+    } catch { setImportMessage('Saved import unavailable; enter the URL again.'); }
+  }, []);
+  useEffect(() => {
+    if (!importState?.job || current || importBusy) return;
+    const saved = importState;
+    const jobId = saved.job!.id;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let attempts = 0;
+    async function poll() {
+      attempts++;
+      try {
+        const job = await interviewApi<ImportJob>(`api/repositories/ingest/${jobId}`);
+        if (stopped) return;
+        rememberImport({ ...saved, job }); setRepo(job.repository_id);
+        if (job.status === 'failed' || job.status === 'cancelled') {
+          setIndexed(false); setImportMessage(job.error_summary ?? `Import ${job.status}. Retry import to create a new job.`); return;
+        }
+        setImportMessage(job.rate_limited ? `Paused by GitHub rate limit. Next retry: ${job.next_attempt_at ? new Date(job.next_attempt_at).toLocaleString() : 'pending'}` : `${job.status === 'running' ? 'Importing files' : job.status}: ${job.processed_files}/${job.total_files} files`);
+        if (job.status === 'succeeded') {
+          const result = await interviewApi<{ ready: boolean; indexing_complete: boolean; total_chunks: number; embedded_chunks: number }>(`api/repositories/${job.repository_id}/ready`);
+          if (stopped) return;
+          setIndexed(result.indexing_complete);
+          setImportMessage(result.indexing_complete ? 'Ready for interview · import and embeddings complete.' : result.total_chunks === 0 ? 'Import completed, but no code chunks are available for interviews.' : `Import completed · Generating embeddings: ${result.embedded_chunks} / ${result.total_chunks}. Ensure the embedding worker is running.`);
+          if (result.indexing_complete || result.total_chunks === 0) return;
+        }
+      } catch (err) {
+        if (stopped) return;
+        setIndexed(false); setImportMessage(err instanceof Error ? err.message : 'Status unavailable.');
+        if (err instanceof ApiError && err.status === 404) return;
+      }
+      if (attempts < 60) timer = setTimeout(poll, 5000);
+      else setImportMessage('Monitoring paused. Workers may be stopped or still processing. Refresh status to resume; the job remains saved.');
+    }
+    void poll();
+    return () => { stopped = true; clearTimeout(timer); };
+  }, [importState?.job?.id, pollRound, current, importBusy]);
   const [topic, setTopic] = useState(DEFAULT_TOPIC);
   const [difficulty, setDifficulty] =
     useState<Difficulty>('intermediate');
@@ -86,8 +193,8 @@ export default function InterviewPage() {
       `api/interviews/${sessionId}`
     );
 
-    setCurrent(history.current);
-    setTurns(history.turns);
+    setCurrent(previous => previous?.session_id === history.current.session_id && previous.version > history.current.version ? previous : history.current);
+    setTurns(previous => previous.length && previous[previous.length - 1].response.session_id === history.current.session_id && previous[previous.length - 1].response.version > history.current.version ? previous : history.turns);
     setReport(history.current.report ?? null);
 
     if (
@@ -118,6 +225,13 @@ export default function InterviewPage() {
 
     async function restore() {
       try {
+        const location = new URL(window.location.href);
+        if (location.searchParams.get('new') === '1') {
+          sessionStorage.removeItem(STORAGE_KEY);
+          location.searchParams.delete('new');
+          window.history.replaceState(null, '', location.toString());
+          return;
+        }
         const raw = sessionStorage.getItem(STORAGE_KEY);
         if (!raw) return;
 
@@ -257,7 +371,7 @@ export default function InterviewPage() {
         request.body
       );
 
-      setCurrent(response);
+      setCurrent(previous => previous?.session_id === response.session_id && previous.version > response.version ? previous : response);
       setReport(response.report ?? null);
 
       setTurns((previous) => {
@@ -278,7 +392,7 @@ export default function InterviewPage() {
                 : null,
             response,
           },
-        ];
+        ].sort((a, b) => a.response.version - b.response.version);
       });
 
       setAnswer('');
@@ -306,6 +420,12 @@ export default function InterviewPage() {
           null,
           answer
         );
+      }
+
+      if (err instanceof ApiError && err.status === 429) {
+        setError('Another interview request is still running. Your draft is saved. Wait, then retry the same answer or reload conversation.');
+        // Keep the submission guard during cooldown. Never automatically POST again.
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
 
       if (
@@ -337,9 +457,9 @@ export default function InterviewPage() {
               answer
             );
 
-            setError(
-              'Interview changed. Review the latest question before sending again.'
-            );
+            setError(history.current.version !== request.body.expected_version || history.current.status !== 'active'
+              ? 'Interview changed. Your answer is retained. Review the latest question before sending again.'
+              : err.message + ' Your question has not changed; your answer is retained.');
           }
         } catch {
           // Preserve the original request for a safe retry.
@@ -354,7 +474,7 @@ export default function InterviewPage() {
   function startInterview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (busy || (!topic.trim() && !pending)) return;
+    if (busy || importBusy || (!pending && (!indexed || !repo || !topic.trim()))) return;
 
     setSettingsOpen(false);
 
@@ -498,6 +618,15 @@ export default function InterviewPage() {
               className="start-composer"
               onSubmit={startInterview}
             >
+              <section className="repository-onboarding" aria-label="Repository import">
+                <label htmlFor="github-url">GitHub repository</label>
+                <div className="import-controls"><input id="github-url" type="url" placeholder="https://github.com/owner/repository" value={githubUrl} disabled={busy || importBusy || !!pending} onChange={event => { setGithubUrl(event.target.value); setSessions([]); setIndexed(false); setRepo(''); setImportState(null); try { localStorage.removeItem(IMPORT_KEY); } catch {} }} />
+                  <button type="button" disabled={busy || detecting || indexed || importBusy || !!pending || !githubUrl.trim()} onClick={() => void importRepository()}>{importBusy ? 'Importing…' : importState ? 'Retry import' : 'Import repository'}</button></div>
+                <p role="status">{detecting ? 'Checking your repository…' : importMessage}</p>
+                {sessions.length > 0 && <div aria-label="Saved interviews">{sessions.map(session => <button type="button" key={session.session_id} disabled={busy || detecting || !!pending} onClick={() => void openSaved(session.session_id)} style={{ margin: 4 }}>{session.status === 'finished' ? 'View Report' : 'Resume Interview'} · {session.topic} · {new Date(session.updated_at).toLocaleDateString()}</button>)}</div>}
+                {importState?.job && <><progress max={100} value={importState.job.progress_percent} aria-label="Ingestion progress" /><button type="button" disabled={importBusy} onClick={() => { setIndexed(false); setPollRound(n => n + 1); }}>Refresh status</button></>}
+                <small>Public repositories only. Import details persist on this browser. Both workers must run; interview starts after all repository chunks have compatible embeddings.</small>
+              </section>
               <label className="sr-only" htmlFor="topic">
                 Interview topic
               </label>
@@ -582,19 +711,6 @@ export default function InterviewPage() {
                           </span>
                         </div>
 
-                        <label className="settings-field">
-                          Repository ID
-                          <input
-                            value={repo}
-                            required
-                            pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-                            disabled={busy || !!pending}
-                            onChange={(event) =>
-                              setRepo(event.target.value)
-                            }
-                          />
-                        </label>
-
                         <div className="settings-row">
                           <label className="settings-field">
                             Difficulty
@@ -660,13 +776,13 @@ export default function InterviewPage() {
                 <button
                   type="submit"
                   className="start-button"
-                  disabled={busy || !topic.trim()}
+                  disabled={busy || detecting || importBusy || (!pending && (!indexed || !topic.trim()))}
                 >
                   {busy
                     ? 'Preparing…'
                     : pending
                       ? 'Retry'
-                      : 'Start interview'}
+                      : 'Start New Interview'}
 
                   <span aria-hidden="true">↗</span>
                 </button>
@@ -696,9 +812,7 @@ export default function InterviewPage() {
           <div className="conversation-info">
             <div className="conversation-title">
               <span className="repo-label">
-                {current.repository_id === DEFAULT_REPO
-                  ? 'psf / requests'
-                  : 'Repository interview'}
+                {current.repository_id === importState?.job?.repository_id ? importState.url.replace('https://github.com/', '') : 'Repository interview'}
               </span>
 
               <span className="info-divider">/</span>
@@ -802,22 +916,7 @@ export default function InterviewPage() {
                           View code references
                         </summary>
 
-                        <ul>
-                          {turn.response.sources.map(
-                            (source) => (
-                              <li key={source.source_id}>
-                                <code>
-                                  {source.file_path}:
-                                  {source.start_line}–
-                                  {source.end_line}
-                                </code>
-
-                                {source.symbol_name &&
-                                  ` · ${source.symbol_name}`}
-                              </li>
-                            )
-                          )}
-                        </ul>
+                        <Sources sources={turn.response.sources} />
                       </details>
                     )}
                   </div>
@@ -844,6 +943,7 @@ export default function InterviewPage() {
               <section className="completed">
                 <h2>Interview complete.</h2>
                 <p>Your answers have been saved.</p>
+                {!!answer && <div className="chat-error"><p>This draft was not submitted because the interview finished. Copy it before starting a new interview.</p><pre style={{ whiteSpace: 'pre-wrap' }}>{answer}</pre></div>}
 
                 {report ? (
                   <div className="report-container">

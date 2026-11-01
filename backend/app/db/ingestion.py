@@ -17,6 +17,28 @@ from app.schemas.chunking import CodeChunk as ChunkData
 ACTIVE = (IngestionJobStatus.QUEUED, IngestionJobStatus.RUNNING)
 
 
+def embedding_progress(repository_id, model, dimension=768):
+    """One snapshot: latest successfully ingested commit and exact encoder identity."""
+    with request_session() as session:
+        row = session.execute(select(
+            Repository.last_ingested_commit_sha,
+            func.count(CodeChunk.id),
+            func.count(CodeChunk.id).filter(
+                CodeChunk.embedding.is_not(None), CodeChunk.embedding_model == model,
+                func.vector_dims(CodeChunk.embedding) == dimension),
+        ).select_from(Repository).outerjoin(CodeChunk,
+            (CodeChunk.repository_id == Repository.id)
+            & (CodeChunk.commit_sha == Repository.last_ingested_commit_sha)
+        ).where(Repository.id == repository_id)
+          .group_by(Repository.id, Repository.last_ingested_commit_sha)).one_or_none()
+        if row is None:
+            return None
+        commit, total, embedded = row
+        return {"total_chunks": total, "embedded_chunks": embedded,
+                "commit_sha": commit, "embedding_identity": model,
+                "indexing_complete": total > 0 and total == embedded}
+
+
 class JobAccessError(Exception):
     def __init__(self, message: str, status_code: int):
         super().__init__(message)

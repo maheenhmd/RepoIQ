@@ -25,3 +25,5 @@ out/
 # Editors & OS
 .vscode/
 .DS_Store
+
+backend/ingestion-error.log

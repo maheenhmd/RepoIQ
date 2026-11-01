@@ -1,6 +1,7 @@
 """Bounded ingestion stages, checkpoints and persisted retry policy."""
 
 import hashlib
+import logging
 from datetime import datetime, timedelta, timezone
 from time import monotonic
 
@@ -77,8 +78,8 @@ def handle_failure(session, job, error: IngestionFetchError,
     storage.record_error(session, job, error, path)
     job.error_summary = str(error)[:1000]
     job.rate_limited = error.code == "rate_limit"
-    if error.retryable and job.retry_count < settings.ingestion_max_attempts:
-        delay = max(error.retry_after, min(300, 5 * 2 ** (job.retry_count - 1)))
+    if job.rate_limited or (error.retryable and job.retry_count < settings.ingestion_max_attempts):
+        delay = max(error.retry_after, min(3600 if job.rate_limited else 300, 5 * 2 ** min(job.retry_count - 1, 10)))
         job.next_attempt_at = utcnow() + timedelta(seconds=delay)
         return False
     if path is None or job.rate_limited:
@@ -158,6 +159,8 @@ def process_files(session, client, repository, job, settings, deadline) -> None:
         job.attempted_files += 1
         job.resume_cursor = str(cursor + 1)
         job.retry_count = 0
+        job.error_summary = None
+        job.rate_limited = False
     finish_if_complete(job, repository)
 
 
@@ -183,10 +186,12 @@ def process_next_job(settings: Settings) -> bool:
                     repository.primary_language = str(language)[:100] if language else None
                     job.target_ref, job.target_commit_sha = ref, sha
                     job.retry_count = 0
+                    job.error_summary = None
                 elif job.file_manifest is None:
                     if job.resume_cursor or job.attempted_files:
                         raise IngestionFetchError("Legacy job has no durable manifest; start a new job", code="legacy_job")
                     discover(client, repository, job, settings)
+                    job.error_summary = None
                     finish_if_complete(job, repository)
                 else:
                     process_files(session, client, repository, job, settings, deadline)
@@ -200,4 +205,8 @@ def process_next_job(settings: Settings) -> bool:
             # Leave a cancellation window and avoid a busy loop between batches.
             job.next_attempt_at = utcnow() + timedelta(seconds=settings.ingestion_poll_seconds)
         session.flush()
-        return True
+        summary = (str(job.id), job.status.value, job.succeeded_files + job.failed_files,
+                   job.eligible_files, job.retry_count, job.next_attempt_at, job.rate_limited)
+    # claim_job has committed before reporting progress.
+    logging.info("ingestion_batch_committed job=%s status=%s processed=%d total=%d retries=%d next_attempt=%s rate_limited=%s", *summary)
+    return True

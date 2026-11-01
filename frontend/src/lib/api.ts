@@ -11,7 +11,7 @@ export async function interviewApi<T>(path: string, body?: unknown): Promise<T> 
       method: body === undefined ? 'GET' : 'POST',
       headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
-      cache: 'no-store', signal: AbortSignal.timeout(240000),
+      cache: 'no-store', signal: AbortSignal.timeout(body === undefined ? 30000 : 240000),
     });
     const data = await response.json();
     if (!response.ok) throw new ApiError(typeof data.detail === 'string' ? data.detail : 'Please check your input and try again.', response.status);

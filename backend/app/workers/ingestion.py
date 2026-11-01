@@ -21,8 +21,13 @@ def main() -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     settings = get_settings()
     stopping = Event()
+    reason = 'once'
+    def stop(signum, _frame):
+        nonlocal reason
+        reason = f'signal_{signum}'
+        stopping.set()
     for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, lambda *_: stopping.set())
+        signal.signal(sig, stop)
     logging.info("Ingestion worker started")
     failures = 0
     while not stopping.is_set():
@@ -33,14 +38,18 @@ def main() -> None:
             failures += 1
             logging.error("Database operation failed; batch rolled back")
             if args.once:
+                logging.error("Ingestion worker stopped reason=database_failure")
                 raise SystemExit(1) from None
             stopping.wait(min(60, 2 ** min(failures, 6)))
             continue
+        except Exception as exc:
+            logging.error("Ingestion worker stopped reason=unexpected_failure type=%s", type(exc).__name__)
+            raise SystemExit(1) from None
         if args.once:
             break
         if not worked:
             stopping.wait(settings.ingestion_poll_seconds)
-    logging.info("Ingestion worker stopped")
+    logging.info("Ingestion worker stopped reason=%s", reason)
 
 
 if __name__ == "__main__":

@@ -36,6 +36,10 @@ def apply_policy(draft, state):
         })
         draft = draft.model_copy(update={'feedback': feedback})
     assessment = draft.feedback.assessment
+    if assessment == 'correct' and draft.feedback.missed_concepts:
+        raise ValueError('Correct evaluation contradicts recorded missing concepts')
+    if assessment == 'uncertain':
+        draft = draft.model_copy(update={'feedback': draft.feedback.model_copy(update={'depth': 'unassessed'})})
     level = LEVELS.index(state['difficulty'])
     # Evidence uncertainty is not evidence of poor candidate performance.
     if assessment == 'incorrect' or is_explicit_non_answer(state['answer']):

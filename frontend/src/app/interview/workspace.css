@@ -1137,3 +1137,13 @@
     scroll-behavior: auto !important;
   }
 }
+
+.repository-onboarding { padding:18px 0; border-bottom:1px solid var(--border); margin-bottom:18px; }
+.repository-onboarding label { display:block; margin-bottom:8px; font-weight:600; }
+.import-controls { display:flex; gap:10px; flex-wrap:wrap; }
+.import-controls input { flex:1; min-width:180px; border:1px solid var(--border); border-radius:8px; padding:12px; background:var(--bg); color:var(--text); }
+.repository-onboarding button { border:0; border-radius:8px; padding:10px 14px; background:var(--coral); color:#151618; cursor:pointer; }
+.repository-onboarding button:disabled { opacity:.5; cursor:not-allowed; }
+.repository-onboarding p { color:var(--teal); font-size:13px; }
+.repository-onboarding small { display:block; color:var(--muted); margin-top:12px; }
+.repository-onboarding progress { accent-color:var(--teal); width:100%; margin-bottom:10px; }
