@@ -1,5 +1,9 @@
 
 from fastapi import APIRouter, HTTPException
+from uuid import UUID
+
+from app.schemas.search import SearchRequest, SearchResponse
+from app.services.code_search import SearchError, search_repository
 
 from app.integrations.github_client import GitHubClientError
 
@@ -26,6 +30,14 @@ from app.services.bulk_ingestor import collect_repository_documents
 
 
 router = APIRouter()
+
+
+@router.post("/{repository_id}/search", response_model=SearchResponse)
+def search_repository_code(repository_id: UUID, payload: SearchRequest):
+    try:
+        return search_repository(repository_id, payload.query, payload.top_k)
+    except SearchError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from None
 
 
 @router.post(

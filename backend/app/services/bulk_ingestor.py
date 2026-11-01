@@ -6,7 +6,6 @@ from app.integrations.github_client import GitHubClientError
 from app.services.repo_importer import discover_filtered_repository_files
 from app.services.source_reader import fetch_source_file
 
-
 MAX_BATCH_FILES = 10
 MAX_BATCH_BYTES = 512 * 1024
 

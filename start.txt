@@ -1,0 +1,9 @@
+backend start 
+cd C:\Users\HP\Desktop\RepoIQ\backend
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload
+
+pytest testing 
+cd C:\Users\HP\Desktop\RepoIQ\backend
+.\.venv\Scripts\Activate.ps1
+python -m pytest tests/test_code_search.py -q

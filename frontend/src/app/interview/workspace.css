@@ -1,0 +1,1139 @@
+
+/* RepoIQ — Minimal, colorful interview chat */
+
+@property --frame-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.repoiq-chat {
+  --bg: #151618;
+  --surface: #292a2e;
+  --surface-hover: #34353a;
+  --border: #424349;
+  --text: #f7f7f8;
+  --muted: #a3a5ae;
+  --coral: #ff785f;
+  --teal: #35d8c7;
+  --pink: #ef719b;
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100dvh;
+  height: auto;
+  overflow: visible;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.repoiq-chat *,
+.repoiq-chat *::before,
+.repoiq-chat *::after {
+  box-sizing: border-box;
+}
+
+.repoiq-chat button,
+.repoiq-chat input,
+.repoiq-chat select,
+.repoiq-chat textarea {
+  font: inherit;
+}
+
+.repoiq-chat button {
+  cursor: pointer;
+}
+
+.repoiq-chat button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.repoiq-chat button:focus-visible,
+.repoiq-chat input:focus-visible,
+.repoiq-chat select:focus-visible,
+.repoiq-chat textarea:focus-visible,
+.repoiq-chat summary:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+
+.repoiq-chat .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------
+   Animated full-screen border
+   -------------------------------- */
+
+.repoiq-chat::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  padding: 2px;
+  pointer-events: none;
+
+  background: conic-gradient(
+    from var(--frame-angle),
+    rgba(255, 255, 255, 0.35) 0deg,
+    rgba(255, 255, 255, 0.95) 40deg,
+    rgba(255, 120, 95, 0.85) 85deg,
+    rgba(255, 255, 255, 0.32) 140deg,
+    rgba(53, 216, 199, 0.9) 225deg,
+    rgba(239, 113, 155, 0.65) 285deg,
+    rgba(255, 255, 255, 0.35) 360deg
+  );
+
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+
+  animation: iq-frame-rotate 12s linear infinite;
+}
+
+.repoiq-chat::after {
+  content: "";
+  position: fixed;
+  inset: 2px;
+  z-index: 99;
+  pointer-events: none;
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  box-shadow:
+    inset 0 0 16px rgba(255, 255, 255, 0.035),
+    inset 0 0 30px rgba(53, 216, 199, 0.025);
+
+  animation: iq-frame-glow 5s ease-in-out infinite alternate;
+}
+
+@keyframes iq-frame-rotate {
+  to {
+    --frame-angle: 360deg;
+  }
+}
+
+@keyframes iq-frame-glow {
+  from {
+    box-shadow:
+      inset 0 0 12px rgba(255, 255, 255, 0.025),
+      inset 0 0 24px rgba(53, 216, 199, 0.015);
+  }
+
+  to {
+    box-shadow:
+      inset 0 0 20px rgba(255, 255, 255, 0.075),
+      inset 0 0 36px rgba(255, 120, 95, 0.045);
+  }
+}
+
+/* --------------------------------
+   Header
+   -------------------------------- */
+
+.repoiq-chat .chat-header {
+  min-height: 72px;
+  width: 100%;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  padding: 0 clamp(22px, 5vw, 72px);
+}
+
+.repoiq-chat .chat-brand {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+}
+
+.repoiq-chat .chat-brand span {
+  color: var(--teal);
+}
+
+.repoiq-chat .chat-brand strong {
+  color: var(--coral);
+  font-weight: 800;
+}
+
+.repoiq-chat .header-right {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.repoiq-chat .connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.repoiq-chat .connection-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #84858d;
+}
+
+.repoiq-chat .connection-dot.online {
+  background: var(--teal);
+  box-shadow: 0 0 7px rgba(53, 216, 199, 0.25);
+}
+
+.repoiq-chat .new-interview {
+  border: none;
+  padding: 9px 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.repoiq-chat .new-interview span {
+  color: var(--coral);
+  font-size: 18px;
+  margin-right: 6px;
+}
+
+.repoiq-chat .new-interview:hover {
+  color: var(--coral);
+}
+
+/* --------------------------------
+   Welcome screen
+   -------------------------------- */
+
+.repoiq-chat .welcome-screen {
+  flex: 1;
+  width: 100%;
+  min-height: calc(100dvh - 72px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 42px 24px 90px;
+  overflow: visible;
+}
+
+.repoiq-chat .welcome-inner {
+  width: min(100%, 1050px);
+}
+
+.repoiq-chat .greeting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 13px;
+}
+
+.repoiq-chat .greeting-mascot {
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.repoiq-chat .greeting h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(27px, 3.15vw, 41px);
+  font-weight: 650;
+  letter-spacing: -1.3px;
+  line-height: 1.2;
+}
+
+.repoiq-chat .greeting h1 span {
+  color: var(--coral);
+}
+
+.repoiq-chat .welcome-description {
+  margin: 0 0 34px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.repoiq-chat .welcome-note {
+  margin: 20px 0 0;
+  color: #878992;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.1px;
+}
+
+.repoiq-chat .welcome-loading {
+  color: var(--teal);
+  font-size: 13px;
+  margin-top: 20px;
+}
+
+/* --------------------------------
+   Main composer
+   -------------------------------- */
+
+.repoiq-chat .start-composer,
+.repoiq-chat .answer-composer {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 27px;
+  padding: 22px;
+
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.repoiq-chat .start-composer:focus-within,
+.repoiq-chat .answer-composer:focus-within {
+  border-color: rgba(255, 255, 255, 0.44);
+
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 20px rgba(53, 216, 199, 0.035);
+}
+
+.repoiq-chat .start-composer textarea,
+.repoiq-chat .answer-composer textarea {
+  display: block;
+  width: 100%;
+  border: 0;
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  color: var(--text);
+  padding: 0 2px;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.repoiq-chat .start-composer textarea {
+  min-height: 100px;
+}
+
+.repoiq-chat textarea::placeholder {
+  color: #9798a1;
+}
+
+.repoiq-chat .composer-bottom,
+.repoiq-chat .answer-composer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 11px;
+}
+
+.repoiq-chat .composer-tools {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.repoiq-chat .topic-hint {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+/* --------------------------------
+   Smooth interactive dropdown
+   -------------------------------- */
+
+.repoiq-chat .settings-menu {
+  position: relative;
+  z-index: 12;
+}
+
+.repoiq-chat .settings-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+
+  padding: 10px 15px;
+  border: 1px solid rgba(53, 216, 199, 0.38);
+  border-radius: 24px;
+
+  background: rgba(53, 216, 199, 0.055);
+  color: var(--teal);
+
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  transition:
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.repoiq-chat .settings-trigger:hover,
+.repoiq-chat .settings-trigger.is-open {
+  background: rgba(53, 216, 199, 0.12);
+  border-color: rgba(53, 216, 199, 0.75);
+  box-shadow: 0 0 14px rgba(53, 216, 199, 0.07);
+}
+
+.repoiq-chat .settings-trigger:active {
+  transform: scale(0.98);
+}
+
+.repoiq-chat .settings-chevron {
+  transition: transform 0.28s ease;
+}
+
+.repoiq-chat .settings-trigger.is-open .settings-chevron {
+  transform: rotate(180deg);
+}
+
+/* Positioned above the composer so opening it
+   doesn't push the entire page down. */
+
+.repoiq-chat .settings-panel {
+  position: absolute;
+  z-index: 30;
+
+  bottom: calc(100% + 13px);
+  left: 0;
+
+  width: min(365px, calc(100vw - 36px));
+
+  background: #303136;
+  border: 1px solid #51525a;
+  border-radius: 19px;
+
+  box-shadow:
+    0 16px 55px rgba(0, 0, 0, 0.35),
+    0 0 16px rgba(53, 216, 199, 0.045);
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transform: translateY(12px) scale(0.975);
+  transform-origin: bottom left;
+
+  transition:
+    opacity 0.26s ease,
+    transform 0.26s cubic-bezier(0.2, 0.75, 0.25, 1),
+    visibility 0.26s;
+}
+
+.repoiq-chat .settings-panel.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.repoiq-chat .settings-panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.repoiq-chat .settings-title {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-bottom: 3px;
+}
+
+.repoiq-chat .settings-title strong {
+  font-size: 15px;
+  color: #fff;
+}
+
+.repoiq-chat .settings-title > span {
+  color: #a7a9b2;
+  font-size: 12px;
+}
+
+.repoiq-chat .settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #e0e0e5;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.repoiq-chat .settings-field input,
+.repoiq-chat .settings-field select {
+  width: 100%;
+  min-width: 0;
+  height: 43px;
+
+  padding: 0 12px;
+
+  background: #26272b;
+  border: 1px solid #55565e;
+  border-radius: 9px;
+
+  outline: none;
+  color: #f8f8fa;
+  font-size: 13px;
+
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.repoiq-chat .settings-field input:focus,
+.repoiq-chat .settings-field select:focus {
+  border-color: var(--teal);
+  background: #222427;
+}
+
+.repoiq-chat .settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+
+.repoiq-chat .settings-actions {
+  padding-top: 4px;
+  border-top: 1px solid #484a50;
+}
+
+.repoiq-chat .settings-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  width: 100%;
+  padding: 11px 14px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: var(--teal);
+  color: #172726;
+
+  font-size: 13px;
+  font-weight: 750;
+
+  transition: background-color 0.2s ease;
+}
+
+.repoiq-chat .settings-actions button:hover {
+  background: #73e8db;
+}
+
+/* --------------------------------
+   Start interview button
+   -------------------------------- */
+
+.repoiq-chat .start-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 11px;
+
+  padding: 12px 18px;
+
+  border: 0;
+  border-radius: 22px;
+
+  background: var(--coral);
+  color: #231d1d;
+
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.repoiq-chat .start-button:hover:not(:disabled) {
+  background: #ff9a83;
+  transform: translateY(-1px);
+}
+
+.repoiq-chat .start-button span {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* --------------------------------
+   Interview progress
+   -------------------------------- */
+
+.repoiq-chat .conversation-info {
+  width: min(850px, calc(100% - 40px));
+  margin: 22px auto 0;
+  padding-bottom: 17px;
+
+  border-bottom: 1px solid #34353a;
+}
+
+.repoiq-chat .conversation-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.repoiq-chat .repo-label {
+  color: var(--teal);
+}
+
+.repoiq-chat .info-divider {
+  color: #777982;
+}
+
+.repoiq-chat .topic-label {
+  color: #f0f0f2;
+}
+
+.repoiq-chat .conversation-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+
+  margin-top: 9px;
+
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.repoiq-chat .progress-track {
+  height: 3px;
+  overflow: hidden;
+
+  margin-top: 17px;
+
+  background: #383a40;
+  border-radius: 99px;
+}
+
+.repoiq-chat .progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--teal);
+
+  transition: width 0.35s ease;
+}
+
+/* --------------------------------
+   Chat messages
+   Single natural page scrollbar
+   -------------------------------- */
+
+.repoiq-chat .chat-messages {
+  flex: 1;
+  width: min(850px, 100%);
+  margin: 0 auto;
+  padding: 35px 20px 45px;
+
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+.repoiq-chat .chat-turn {
+  margin-bottom: 43px;
+}
+
+.repoiq-chat .assistant-message {
+  margin: 23px 0;
+}
+
+.repoiq-chat .assistant-name {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  font-size: 14px;
+}
+
+.repoiq-chat .assistant-avatar {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.repoiq-chat .assistant-question {
+  margin: 12px 0 11px 49px;
+
+  color: #f0f0f3;
+  font-size: 16px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Candidate */
+
+.repoiq-chat .candidate-message {
+  display: flex;
+  justify-content: flex-end;
+  margin: 25px 0;
+}
+
+.repoiq-chat .candidate-bubble {
+  max-width: 84%;
+  padding: 16px 19px;
+
+  border-radius: 18px 18px 5px 18px;
+  background: #34363b;
+
+  color: #f6f6f8;
+  font-size: 14px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Evaluation */
+
+.repoiq-chat .feedback-message {
+  margin: 18px 0 24px 49px;
+  padding-left: 17px;
+
+  border-left: 2px solid var(--teal);
+}
+
+.repoiq-chat .feedback-header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.repoiq-chat .assessment {
+  display: inline-block;
+  padding: 4px 9px;
+
+  border-radius: 6px;
+  background: #26423d;
+  color: #7fe5d8;
+
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: capitalize;
+}
+
+.repoiq-chat .assessment-incorrect {
+  background: #482d2b;
+  color: #ffb3a4;
+}
+
+.repoiq-chat .assessment-partial,
+.repoiq-chat .assessment-uncertain {
+  background: #493b2c;
+  color: #f7c384;
+}
+
+.repoiq-chat .feedback-message p {
+  margin: 0;
+
+  color: #c8cad1;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.repoiq-chat .feedback-message small {
+  display: block;
+  margin-top: 9px;
+
+  color: #efbd91;
+  font-size: 12px;
+}
+
+/* References */
+
+.repoiq-chat .sources {
+  margin: 12px 0 0 49px;
+  font-size: 12px;
+}
+
+.repoiq-chat .sources summary {
+  width: fit-content;
+  color: var(--teal);
+  cursor: pointer;
+}
+
+.repoiq-chat .sources ul {
+  margin: 11px 0;
+  padding-left: 18px;
+
+  color: #abadb8;
+  line-height: 1.9;
+}
+
+.repoiq-chat .sources li {
+  overflow-wrap: anywhere;
+}
+
+.repoiq-chat .sources code {
+  color: #d0d0d9;
+  font-size: 12px;
+}
+
+/* Thinking animation */
+
+.repoiq-chat .thinking {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin: 25px 0;
+
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.repoiq-chat .thinking-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.repoiq-chat .thinking-dots span {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+  background: var(--teal);
+
+  opacity: 0.3;
+  animation: iq-thinking 1.25s ease-in-out infinite;
+}
+
+.repoiq-chat .thinking-dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.repoiq-chat .thinking-dots span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes iq-thinking {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+/* --------------------------------
+   Sticky answer composer
+   -------------------------------- */
+
+.repoiq-chat .answer-area {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+
+  width: 100%;
+  margin: 0 auto;
+  padding: 15px 20px 23px;
+
+  background: var(--bg);
+}
+
+.repoiq-chat .answer-composer {
+  width: min(850px, 100%);
+  margin: 0 auto;
+
+  padding: 19px 20px 15px;
+  border-radius: 24px;
+}
+
+.repoiq-chat .answer-composer textarea {
+  min-height: 70px;
+  max-height: 230px;
+  font-size: 16px;
+}
+
+.repoiq-chat .answer-composer-bottom span {
+  color: #a3a4ad;
+  font-size: 11px;
+}
+
+.repoiq-chat .send-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+
+  width: 44px;
+  height: 44px;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: var(--coral);
+  color: #231d1d;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.repoiq-chat .send-icon:hover:not(:disabled) {
+  background: #ff9b85;
+  transform: translateY(-1px);
+}
+
+/* --------------------------------
+   Errors and final report
+   -------------------------------- */
+
+.repoiq-chat .chat-error {
+  width: min(850px, calc(100% - 40px));
+  margin: 16px auto;
+  padding: 13px 16px;
+
+  background: #352627;
+  border: 1px solid #69413d;
+  border-radius: 12px;
+
+  color: #ffc2b4;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.repoiq-chat .chat-error p {
+  margin: 0 0 8px;
+}
+
+.repoiq-chat .chat-error button {
+  border: none;
+  padding: 0;
+
+  background: transparent;
+  color: #ffc2b4;
+
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+.repoiq-chat .completed {
+  margin-top: 28px;
+  padding-top: 28px;
+
+  border-top: 1px solid var(--border);
+}
+
+.repoiq-chat .completed h2 {
+  margin: 0 0 8px;
+  color: white;
+  font-size: 25px;
+}
+
+.repoiq-chat .completed > p {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.repoiq-chat .report-container {
+  padding: 23px;
+  border-radius: 17px;
+
+  background: white;
+  color: #171536;
+}
+
+.repoiq-chat .report-button {
+  padding: 12px 19px;
+  border: none;
+  border-radius: 10px;
+
+  background: var(--coral);
+  color: #211d1d;
+
+  font-weight: 700;
+}
+
+/* --------------------------------
+   Mobile layout
+   -------------------------------- */
+
+@media (max-width: 650px) {
+  .repoiq-chat .chat-header {
+    min-height: 62px;
+    padding: 0 18px;
+  }
+
+  .repoiq-chat .chat-brand {
+    font-size: 23px;
+  }
+
+  .repoiq-chat .header-right {
+    gap: 13px;
+  }
+
+  .repoiq-chat .connection {
+    display: none;
+  }
+
+  .repoiq-chat .welcome-screen {
+    min-height: calc(100dvh - 62px);
+    padding: 32px 17px 55px;
+  }
+
+  .repoiq-chat .greeting {
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+  }
+
+  .repoiq-chat .greeting-mascot {
+    width: 72px;
+    height: 72px;
+  }
+
+  .repoiq-chat .greeting h1 {
+    font-size: 28px;
+  }
+
+  .repoiq-chat .welcome-description {
+    margin-bottom: 28px;
+  }
+
+  .repoiq-chat .start-composer {
+    padding: 17px;
+    border-radius: 22px;
+  }
+
+  .repoiq-chat .start-composer textarea {
+    min-height: 95px;
+    font-size: 16px;
+  }
+
+  .repoiq-chat .composer-bottom {
+    align-items: flex-end;
+  }
+
+  .repoiq-chat .composer-tools {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .repoiq-chat .settings-trigger {
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+
+  .repoiq-chat .settings-panel {
+    left: -3px;
+    width: min(335px, calc(100vw - 35px));
+  }
+
+  .repoiq-chat .settings-panel-inner {
+    padding: 16px;
+  }
+
+  .repoiq-chat .topic-hint {
+    padding-left: 5px;
+    font-size: 11px;
+  }
+
+  .repoiq-chat .start-button {
+    padding: 11px 13px;
+    font-size: 12px;
+  }
+
+  .repoiq-chat .conversation-info {
+    margin-top: 8px;
+  }
+
+  .repoiq-chat .chat-messages {
+    padding: 26px 17px 30px;
+  }
+
+  .repoiq-chat .assistant-question,
+  .repoiq-chat .feedback-message,
+  .repoiq-chat .sources {
+    margin-left: 0;
+  }
+
+  .repoiq-chat .candidate-bubble {
+    max-width: 95%;
+  }
+
+  .repoiq-chat .answer-area {
+    padding: 10px 12px 13px;
+  }
+
+  .repoiq-chat .answer-composer {
+    border-radius: 20px;
+    padding: 15px;
+  }
+
+  .repoiq-chat .answer-composer-bottom > span {
+    max-width: 190px;
+    line-height: 1.5;
+  }
+
+  .repoiq-chat .report-container {
+    padding: 14px;
+  }
+}
+
+/* Respect reduced-motion preferences */
+
+@media (prefers-reduced-motion: reduce) {
+  .repoiq-chat::before,
+  .repoiq-chat::after,
+  .repoiq-chat *,
+  .repoiq-chat *::before,
+  .repoiq-chat *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

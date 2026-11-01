@@ -5,6 +5,14 @@
 > **Project stage:** Automatic PostgreSQL-backed ingestion implemented; new queue migration and runtime verification pending owner execution. Initial migration applied to Neon (owner reported).  
 > **Primary goal:** Build a GitHub-repository-aware AI mock interviewer while learning backend and AI engineering systematically.
 
+> **Current implementation snapshot (2026-10-31):** backend MVP policy/report additions
+> are implemented but NOT RUN. Earlier phase notes below are historical. See
+> [backend MVP audit, contracts and owner verification](backend-mvp.md).
+
+> **Frontend interview milestone:** `/interview` now implements the existing text
+> interview contracts through a same-origin Next.js proxy. No backend behavior changes.
+> Implementation only, runtime NOT RUN; see [workspace guide](interview-ui.md).
+
 ## 0. Read this first (humans and coding agents)
 
 This document records the **current agreements and constraints**. It is **not** evidence that the described features already work.
@@ -260,7 +268,31 @@ Retries and backoff are durable. Exhausted ordinary file errors advance the chec
 
 The same pure chunking API selects Tree-sitter for JavaScript/JSX, TypeScript, TSX, Java and C#, using `tree-sitter-language-pack==0.13.0` and locked native dependencies. Python retains its standard-library AST behavior and IDs; other eligible languages retain text fallback. The new parser shares scope partitioning, bounds, metadata and stable-ID generation; malformed trees fall back explicitly. No ingestion, persistence, endpoints or embeddings change. See `docs/chunking.md` for manual verification; runtime checks remain owner-run.
 
+### Phase 3.3A chunk persistence schema
+
+Revision `20261026_0004` enables pgvector and adds `code_chunks` with repository/file foreign keys, unique stable chunk IDs, full chunk metadata/context, timestamps and nullable fixed-dimension vectors. `EMBEDDING_DIMENSION` defaults to 384 and is shared by ORM and migration configuration; changing an installed dimension requires a new migration. This adds only storage structure, with no embedding generation, vector search or ingestion integration. See [chunk persistence setup](chunk-persistence.md). Migration and runtime verification remain owner-run.
+
+### Phase 3.3C local embeddings
+
+CodeRankEmbed (`nomic-ai/CodeRankEmbed`, pinned revision) is the selected local embedding model, producing 768 dimensions. Revision `20261026_0005` archives any previous vectors in `legacy_embedding`, changes the active column to `vector(768)` and adds model provenance. The separate `app.workers.embeddings` CLI processes NULL vectors with row locks, bounded batches and atomic commits. Lazy Sentence Transformers inference supports CPU; query/code prompts follow the official model card. See [embedding operations](embeddings.md). Ingestion/chunking are unchanged; search and interview generation remain future work. Tests, migration and worker execution have not been run.
+
 ## 8. API contracts (existing vs proposed)
+
+Search retrieval now combines repository/model-isolated vector, PostgreSQL full-text
+and exact symbol rankings using RRF before optional ONNX reranking. Code structure
+supplies a bounded near-tie bonus, replacing the earlier hard AST ordering. No schema
+change is required; FTS is computed on demand pending measured indexing needs.
+See [hybrid retrieval and owner-run evaluation](hybrid-search.md). Runtime unverified.
+
+### Phase 3.3D optional reranking (implemented, not runtime verified)
+
+Repository/model-scoped cosine retrieval now supports bounded refill, filtering and
+deduplication, followed by an optional local INT8 ONNX MiniLM cross-encoder. Raw cosine
+is preserved; final scores are either model logits or existing fallback scores,
+never mixed. Reranking defaults off, with explicit build-time provisioning and memory
+checks. Existing CodeRankEmbed/PyTorch query inference remains unchanged and is an
+unresolved obstacle to guaranteeing 512 MB Render Free operation. See
+[provisioning and limits](search-reranking.md). No schema or endpoint changes.
 
 **Existing code paths (verified by inspection, not by HTTP test):**
 - `GET /health` → intended `{ "status": "ok" }`.
@@ -362,7 +394,31 @@ Milestones may be subdivided. **Do not skip foundational tests in a rush to impl
 
 > Read `AGENTS.md` and `docs/architecture.md` completely. Implement **only** [one specific task]. Inspect existing code first. Keep all LOCKED decisions, never delete/re-scaffold/overwrite unrelated files, and do not introduce paid services. Explain concepts, list files to change, implement the smallest safe patch, run relevant tests, and report exact results. If a requirement is unclear or conflicts with the architecture, stop and ask instead of guessing.
 
+### Phase 4A adaptive interview foundation (implemented, NOT runtime verified)
+
+Text interviews use configurable loopback Ollama behind `LLMProvider`. Existing
+repository/model-scoped hybrid retrieval supplies bounded commit-consistent
+evidence. Each answer gets qualitative feedback and a dynamic follow-up, topic
+change or finish decision, without predetermined question lists. Citation IDs are
+validated against server-owned references. Revision `20261029_0006` adds session/
+turn tables with optimistic version checks, idempotency and atomic short writes;
+inference holds no DB transaction. Routes: `/api/interviews/start`,
+`/api/interviews/{id}/answers`, `/api/interviews/{id}`. This supersedes earlier
+proposed interview contracts/provider TBD notes for local text development only.
+Authentication, retention, advanced scoring, frontend and voice remain future work.
+See [interview operations](interviews.md) for limits and manual commands.
+No tests, migrations or models were run.
+
 ## 13. Outstanding decisions — do not invent answers
+
+The backend MVP now includes deterministic transition/difficulty policy and a
+versioned practice report. Correctness is scored from saved evaluations; depth is
+separate and explicitly unassessed for legacy feedback. New finished reports are
+stored inside the final turn JSONB in the existing atomic transaction (no migration).
+Legacy completed histories can be deterministically reported with the same rubric.
+`GET /api/interviews/{id}/report` and bounded `GET /ready` are additive contracts.
+The selected local model remains qwen2.5-coder:1.5b. User ownership/authentication,
+deployment, voice and frontend remain out of scope. New tests are written, not run.
 
 - LLM provider/model, embedding model, token/call limits and fallback behavior.
 - GitHub import API approach, maximum repository size, supported languages, caching and content retention.

@@ -1,7 +1,6 @@
-from fastapi.testclient import TestClient
-
 from app.main import app
 from app.services.file_filter import filter_repository_files
+from fastapi.testclient import TestClient
 
 
 def test_file_filter():

@@ -14,6 +14,7 @@ from app.integrations.ingestion_github import IngestionFetchError, IngestionGitH
 from app.schemas.repository import RepositoryFileRequest
 from app.services.file_filter import filter_repository_files
 from app.services.source_reader import decode_source_file
+from app.services.chunking import chunk_source
 
 
 def utcnow():
@@ -125,19 +126,30 @@ def process_files(session, client, repository, job, settings, deadline) -> None:
         used_bytes += item["size"]
         try:
             existing = storage.existing_file(session, job, item["path"])
-            if existing is None:
-                data = client.blob(repository.owner, repository.name, item)
-                try:
-                    document = decode_source_file(data, item["path"], f"{repository.owner}/{repository.name}")
-                except GitHubClientError as exc:
-                    raise IngestionFetchError(str(exc), code="invalid_content") from exc
-                raw = document["content"].encode("utf-8")
-                blob_hash = hashlib.sha1(f"blob {len(raw)}\0".encode() + raw).hexdigest()
-                if len(raw) != item["size"] or blob_hash != item["sha"]:
-                    raise IngestionFetchError("GitHub blob integrity mismatch")
-                storage.save_file(session, job, item, hashlib.sha256(raw).hexdigest())
-            elif existing.blob_sha != item["sha"] or existing.size_bytes != item["size"]:
+            if existing is not None and (existing.blob_sha != item["sha"] or existing.size_bytes != item["size"]):
                 raise IngestionFetchError("Stored snapshot metadata mismatch", code="snapshot_mismatch")
+            # Manifest blob IDs come from the tree at target_commit_sha, never a moving branch.
+            # Existing metadata alone does not prove that chunks have been persisted.
+            data = client.blob(repository.owner, repository.name, item)
+            try:
+                document = decode_source_file(data, item["path"], f"{repository.owner}/{repository.name}")
+            except GitHubClientError as exc:
+                raise IngestionFetchError(str(exc), code="invalid_content") from exc
+            raw = document["content"].encode("utf-8")
+            blob_hash = hashlib.sha1(f"blob {len(raw)}\0".encode() + raw).hexdigest()
+            if len(raw) != item["size"] or blob_hash != item["sha"]:
+                raise IngestionFetchError("GitHub blob integrity mismatch")
+            try:
+                result = chunk_source(document["content"], repository_id=job.repository_id,
+                                      file_path=item["path"], commit_sha=job.target_commit_sha)
+            except Exception as exc:
+                # Isolate parser failures per file; never expose source or exception text.
+                raise IngestionFetchError("Source chunking failed", code="chunking_failed") from exc
+            if result.status == "skipped":
+                raise IngestionFetchError("Source chunking rejected the file", code="chunking_skipped")
+            # Empty input is a valid zero-chunk result; labelled text fallback is usable.
+            file = existing or storage.save_file(session, job, item, hashlib.sha256(raw).hexdigest())
+            storage.save_chunks(session, file, result.chunks)
         except IngestionFetchError as exc:
             if not handle_failure(session, job, exc, settings, item["path"]):
                 break

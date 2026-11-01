@@ -1,10 +1,8 @@
 
-from fastapi.testclient import TestClient
-
 from app.integrations.github_client import GitHubClientError
 from app.main import app
 from app.services.bulk_ingestor import collect_repository_documents
-
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 

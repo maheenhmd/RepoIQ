@@ -22,6 +22,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
+from pgvector.sqlalchemy import Vector
+
+from app.core.config import get_vector_settings
 
 
 NAMING_CONVENTION = {
@@ -127,6 +130,73 @@ class RepositoryFile(TimestampMixin, Base):
     ingestion_errors: Mapped[list[IngestionError]] = relationship(
         back_populates="repository_file"
     )
+
+
+class CodeChunk(TimestampMixin, Base):
+    __tablename__ = "code_chunks"
+    __table_args__ = (
+        UniqueConstraint("chunk_id", name="uq_code_chunks_chunk_id"),
+        Index("ix_code_chunks_repository_commit_file", "repository_id", "commit_sha", "file_path"),
+        Index("ix_code_chunks_repository_file_id", "repository_file_id"),
+        CheckConstraint("start_line >= 1 AND end_line >= start_line", name="code_chunks_lines_valid"),
+        CheckConstraint("start_offset >= 0 AND end_offset > start_offset AND chunk_index >= 0", name="code_chunks_offsets_valid"),
+        CheckConstraint("strategy IN ('ast', 'tree_sitter', 'text')", name="code_chunks_strategy_valid"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    repository_id: Mapped[UUID] = mapped_column(ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False)
+    repository_file_id: Mapped[UUID] = mapped_column(ForeignKey("repository_files.id", ondelete="CASCADE"), nullable=False)
+    chunk_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    commit_sha: Mapped[str] = mapped_column(String(64), nullable=False)
+    file_path: Mapped[str] = mapped_column(String(1000), nullable=False)
+    symbol_name: Mapped[str] = mapped_column(Text, nullable=False)
+    symbol_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    start_line: Mapped[int] = mapped_column(Integer, nullable=False)
+    end_line: Mapped[int] = mapped_column(Integer, nullable=False)
+    start_offset: Mapped[int] = mapped_column(Integer, nullable=False)
+    end_offset: Mapped[int] = mapped_column(Integer, nullable=False)
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    context: Mapped[str] = mapped_column(Text, nullable=False)
+    strategy: Mapped[str] = mapped_column(String(16), nullable=False)
+    chunker_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(get_vector_settings().embedding_dimension), nullable=True)
+    legacy_embedding: Mapped[list[float] | None] = mapped_column(Vector(), nullable=True)
+    embedding_model: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    repository: Mapped[Repository] = relationship()
+    repository_file: Mapped[RepositoryFile] = relationship()
+
+
+class InterviewSession(TimestampMixin, Base):
+    __tablename__ = 'interview_sessions'
+    __table_args__ = (
+        Index('ix_interview_sessions_repository_id', 'repository_id'),
+        CheckConstraint("status IN ('active', 'finished')", name='interview_status_valid'),
+        CheckConstraint('version >= 0 AND version <= max_turns AND max_turns BETWEEN 1 AND 20',
+                        name='interview_progress_valid'),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    repository_id: Mapped[UUID] = mapped_column(ForeignKey('repositories.id', ondelete='CASCADE'))
+    commit_sha: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16))
+    version: Mapped[int] = mapped_column(Integer)
+    max_turns: Mapped[int] = mapped_column(Integer)
+    initial_request: Mapped[dict] = mapped_column(JSONB)
+
+
+class InterviewTurn(Base):
+    __tablename__ = 'interview_turns'
+    __table_args__ = (
+        UniqueConstraint('session_id', 'request_id', name='uq_interview_turns_request'),
+        CheckConstraint('sequence BETWEEN 0 AND 20', name='interview_turn_sequence_valid'),
+    )
+    session_id: Mapped[UUID] = mapped_column(ForeignKey('interview_sessions.id', ondelete='CASCADE'), primary_key=True)
+    sequence: Mapped[int] = mapped_column(Integer, primary_key=True)
+    request_id: Mapped[UUID] = mapped_column(nullable=False)
+    answer: Mapped[str | None] = mapped_column(Text)
+    response: Mapped[dict] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class IngestionJob(TimestampMixin, Base):

@@ -1,0 +1,165 @@
+/* RepoIQ — shared landing-page styles */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.rq-page {
+  --navy: #181536;
+  --coral: #ff795f;
+  --teal: #19cfc2;
+  --ink: #201d40;
+  --muted: #61647d;
+  --line: #e6e7f4;
+
+  color: var(--ink);
+  background: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+.rq-page * {
+  box-sizing: border-box;
+}
+
+.rq-page a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.rq-page h1,
+.rq-page h2,
+.rq-page h3,
+.rq-page p {
+  margin-top: 0;
+}
+
+.rq-page h1,
+.rq-page h2,
+.rq-page h3 {
+  letter-spacing: -0.045em;
+}
+
+.rq-shell {
+  width: min(1280px, calc(100% - 92px));
+  margin-inline: auto;
+}
+
+.rq-page section[id] {
+  scroll-margin-top: 95px;
+}
+
+.rq-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  border-radius: 999px;
+  min-height: 53px;
+  padding: 0 28px;
+  font-weight: 800;
+  font-size: 15px;
+  white-space: nowrap;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.rq-button:hover {
+  transform: translateY(-2px);
+}
+
+.rq-button-main {
+  background: var(--coral);
+  color: #191633 !important;
+  box-shadow: 0 9px 16px #ff795f36;
+}
+
+.rq-button-main:hover {
+  box-shadow: 0 13px 25px #ff795f58;
+}
+
+.rq-button-light {
+  background: white;
+  color: var(--navy);
+  box-shadow: 0 6px 22px #29226414;
+  border: 1px solid #e6e6f5;
+}
+
+.rq-page h2 {
+  font-size: clamp(30px, 2.9vw, 43px);
+  line-height: 1.1;
+  color: var(--navy);
+  font-weight: 900;
+  margin-bottom: 14px;
+}
+
+.rq-icon-bg {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 17px;
+}
+
+.rq-tone-coral {
+  color: #ff745e;
+  background: #fff0e9;
+}
+
+.rq-tone-mint {
+  color: #0ccabc;
+  background: #e1fbf8;
+}
+
+.rq-tone-blue {
+  color: #4a98ec;
+  background: #ebf3ff;
+}
+
+.rq-tone-pink {
+  color: #f34d9d;
+  background: #fff0f8;
+}
+
+.rq-section-lead {
+  color: #60647d;
+  line-height: 1.42;
+  font-size: 16px;
+}
+
+.rq-small-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+
+@media (max-width: 1100px) {
+  .rq-shell {
+    width: min(100% - 56px, 1100px);
+  }
+}
+
+@media (max-width: 760px) {
+  .rq-shell {
+    width: calc(100% - 36px);
+  }
+
+  .rq-button {
+    min-height: 47px;
+    padding: 0 19px;
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rq-page *,
+  .rq-page *::before,
+  .rq-page *::after {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

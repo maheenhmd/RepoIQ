@@ -4,7 +4,6 @@ import binascii
 
 from app.integrations.github_client import GitHubClientError
 from app.integrations.github_contents import get_github_file
-
 from app.services.file_filter import (
     MAX_FILE_SIZE,
     is_relevant_file,

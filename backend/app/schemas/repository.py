@@ -28,8 +28,7 @@ class RepositoryPreviewRequest(BaseModel):
 
         owner, repo = parts
 
-        if repo.endswith(".git"):
-            repo = repo[:-4]
+        repo = repo.removesuffix(".git")
 
         if not (
             re.fullmatch(r"[A-Za-z0-9-]{1,39}", owner)

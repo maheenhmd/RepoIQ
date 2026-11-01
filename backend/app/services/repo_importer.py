@@ -2,7 +2,6 @@ from app.integrations.github_client import (
     get_repository_metadata,
     get_repository_tree,
 )
-
 from app.services.file_filter import filter_repository_files
 
 

@@ -8,7 +8,7 @@ Public GitHub metadata, file discovery/filtering, bounded ingestion preview, aut
 
 Instead of asking generic programming questions, RepoIQ analyzes your actual codebase and challenges you to explain its architecture, implementation, and engineering decisions.
 
-> 🚧 **Status:** Under active development. GitHub integration and PostgreSQL foundation are implemented; RAG and AI interviews are upcoming.
+> 🚧 **Status:** Backend ingestion, hybrid search and adaptive interviews are implemented. Final reports and deterministic interview policies are added; latest changes are **NOT RUN**. See the [backend MVP audit and manual runbook](docs/backend-mvp.md) for current contracts; older roadmap entries below are historical. Frontend and voice remain future work.
 
 ---
 

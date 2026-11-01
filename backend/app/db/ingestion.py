@@ -1,6 +1,7 @@
 """PostgreSQL queue and idempotent ingestion persistence."""
 
 from contextlib import contextmanager
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -9,7 +10,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, defer
 
 from app.db.database import SessionLocal
-from app.db.models import IngestionError, IngestionJob, IngestionJobStatus, Repository, RepositoryFile
+from app.db.models import CodeChunk, IngestionError, IngestionJob, IngestionJobStatus, Repository, RepositoryFile
+from app.schemas.chunking import CodeChunk as ChunkData
 
 
 ACTIVE = (IngestionJobStatus.QUEUED, IngestionJobStatus.RUNNING)
@@ -108,12 +110,26 @@ def existing_file(session: Session, job: IngestionJob, path: str) -> RepositoryF
     ).options(defer(RepositoryFile.content)))
 
 
-def save_file(session: Session, job: IngestionJob, item: dict, content_hash: str) -> None:
+def save_file(session: Session, job: IngestionJob, item: dict, content_hash: str) -> RepositoryFile:
     session.execute(insert(RepositoryFile).values(
         repository_id=job.repository_id, ingestion_job_id=job.id,
         path=item["path"], commit_sha=job.target_commit_sha, blob_sha=item["sha"],
         content_sha256=content_hash, size_bytes=item["size"], content=None,
     ).on_conflict_do_nothing(constraint="uq_repository_files_snapshot_path"))
+    return existing_file(session, job, item["path"])
+
+
+def save_chunks(session: Session, file: RepositoryFile, chunks: tuple[ChunkData, ...]) -> None:
+    """Persist bounded inserts in the caller's checkpoint transaction."""
+    for chunk in chunks:
+        if (chunk.repository_id, chunk.commit_sha, chunk.file_path) != (
+                file.repository_id, file.commit_sha, file.path):
+            raise ValueError("Chunk does not belong to the referenced file snapshot")
+    for start in range(0, len(chunks), 100):
+        rows = [dict(asdict(chunk), repository_file_id=file.id)
+                for chunk in chunks[start:start + 100]]
+        session.execute(insert(CodeChunk).values(rows).on_conflict_do_nothing(
+            constraint="uq_code_chunks_chunk_id"))
 
 
 def record_error(session: Session, job: IngestionJob, error, path: str | None) -> None:

@@ -1,0 +1,203 @@
+/* RepoIQ — Enterprise Footer */
+
+.rq-enterprise-footer {
+  position: relative;
+  margin-top: 64px;
+  padding: 65px 0 23px;
+  background: #171536;
+  color: #fff;
+}
+
+.rq-enterprise-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    #ff785f 0 40%,
+    #35d8c7 40% 100%
+  );
+}
+
+.rq-footer-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+  padding-bottom: 42px;
+}
+
+.rq-footer-brand {
+  max-width: 590px;
+}
+
+.rq-footer-logo {
+  display: inline-block;
+  font-size: 35px;
+  line-height: 1;
+  font-weight: 850;
+  letter-spacing: -2px;
+  color: #fff !important;
+}
+
+.rq-footer-logo span {
+  color: #35d8c7;
+}
+
+.rq-footer-logo strong {
+  color: #ff785f;
+}
+
+.rq-enterprise-footer .rq-footer-brand h2 {
+  margin: 22px 0 12px;
+  font-size: clamp(27px, 3vw, 42px);
+  line-height: 1.15;
+  color: #fff;
+}
+
+.rq-footer-brand h2 span {
+  color: #c4c3d5;
+}
+
+.rq-footer-brand p {
+  max-width: 465px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #b2b0c7;
+}
+
+.rq-footer-cta {
+  display: inline-flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-radius: 10px;
+  background: #ff785f;
+  color: #171536 !important;
+  font-weight: 750;
+  font-size: 14px;
+  white-space: nowrap;
+  transition:
+    background .2s ease,
+    transform .2s ease;
+}
+
+.rq-footer-cta:hover {
+  background: #ff9a85;
+  transform: translateY(-2px);
+}
+
+.rq-footer-divider {
+  height: 1px;
+  background: #393751;
+}
+
+.rq-footer-middle {
+  display: flex;
+  justify-content: space-between;
+  gap: 48px;
+  padding: 36px 0 42px;
+}
+
+.rq-footer-message {
+  padding-left: 15px;
+  border-left: 3px solid #35d8c7;
+  font-size: 17px;
+  line-height: 1.5;
+  color: #e0deee;
+  margin: 0;
+}
+
+.rq-footer-navigation {
+  display: flex;
+  gap: clamp(30px, 5vw, 95px);
+}
+
+.rq-footer-link-group h3 {
+  color: #fff;
+  font-size: 13px;
+  letter-spacing: 0;
+  margin: 0 0 16px;
+}
+
+.rq-footer-link-group nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rq-footer-link-group a {
+  color: #b2b0c7 !important;
+  font-size: 13px;
+  transition: color .2s ease;
+}
+
+.rq-footer-link-group a:hover {
+  color: #35d8c7 !important;
+}
+
+.rq-footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 21px;
+}
+
+.rq-footer-bottom p {
+  color: #9997b1;
+  font-size: 12px;
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .rq-enterprise-footer {
+    margin-top: 42px;
+    padding-top: 48px;
+  }
+
+  .rq-footer-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rq-footer-middle {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .rq-footer-navigation {
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 25px;
+  }
+
+  .rq-footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rq-footer-cta {
+    width: 100%;
+  }
+
+  .rq-footer-navigation {
+    gap: 22px;
+  }
+
+  .rq-footer-link-group {
+    min-width: 95px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rq-footer-cta,
+  .rq-footer-link-group a {
+    transition: none;
+  }
+}
