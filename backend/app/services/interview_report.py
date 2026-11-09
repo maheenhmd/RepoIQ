@@ -40,7 +40,7 @@ def build_report(raw_turns: list[dict]) -> InterviewReport:
                 or turn.answer is None or before.question is None or after.feedback is None):
             raise LLMError('Interview history is incomplete; report cannot be calculated', 409)
         # Attribute evaluation to the question answered, not the newly chosen topic.
-        refs = { (r.chunk_id, r.start_line, r.end_line): r for r in [*before.sources, *after.sources] }
+        refs = { (r.chunk_id, r.start_line, r.end_line): r for r in before.sources }
         evaluations.append(ReportEvaluation(
             turn=after.version, topic=before.topic, difficulty=before.difficulty,
             question=before.question, answer=turn.answer, feedback=after.feedback,

@@ -37,7 +37,7 @@ def create(request, response):
         if inserted is None:
             return False
         session.add(InterviewTurn(session_id=response.session_id, sequence=0,
-                                 request_id=request.request_id, response=response.model_dump(mode='json')))
+                                 request_id=request.request_id, response=_stored_response(response)))
     return True
 
 
@@ -53,5 +53,33 @@ def append(request, response):
             return False
         session.add(InterviewTurn(session_id=response.session_id, sequence=response.version,
                                  request_id=request.request_id, answer=request.answer,
-                                 response=response.model_dump(mode='json')))
+                                 response=_stored_response(response)))
     return True
+
+
+def _stored_response(response):
+    data = response.model_dump(mode='json')
+    data['_internal'] = response._internal
+    return data
+
+
+def save_grade(session_id, request, feedback):
+    """Commit grading before inference for the next question, without advancing."""
+    with SessionLocal() as session, session.begin():
+        _limits(session)
+        record = session.scalar(select(InterviewSession).where(
+            InterviewSession.id == session_id).with_for_update())
+        if record is None or record.status != 'active' or record.version != request.expected_version:
+            return None
+        turn = session.scalar(select(InterviewTurn).where(
+            InterviewTurn.session_id == session_id, InterviewTurn.sequence == record.version))
+        data = dict(turn.response)
+        internal = dict(data.get('_internal', {}))
+        pending = internal.get('pending')
+        if pending:
+            return pending if pending['request_id'] == str(request.request_id) and pending['answer'] == request.answer else None
+        pending = dict(request_id=str(request.request_id),answer=request.answer,feedback=feedback.model_dump(mode='json'))
+        internal['pending'] = pending
+        data['_internal'] = internal
+        turn.response = data
+        return pending

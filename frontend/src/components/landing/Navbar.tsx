@@ -18,12 +18,11 @@ export default function Navbar() {
         <nav className="rq-links" aria-label="Main navigation">
           <a href="#benefits">Benefits</a>
           <Link href="/how-it-works">How it works</Link>
-          <Link href="/interview">Interviews</Link>
           <Link href="/faq">FAQ</Link>
         </nav>
 
         <Link
-          href="/interview"
+          href="/auth/signup"
           className="rq-button rq-button-main rq-nav-cta"
         >
           Get Started

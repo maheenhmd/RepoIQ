@@ -1,6 +1,16 @@
 
 /* RepoIQ — Minimal, colorful interview chat */
 
+.repoiq-chat.repoiq-embedded { min-height:calc(100dvh - 72px); width:100%; overflow:visible; }
+.repoiq-chat.repoiq-embedded::before, .repoiq-chat.repoiq-embedded::after { display:none; }
+.repoiq-chat.repoiq-embedded .chat-header { display:none; }
+.repoiq-chat.repoiq-embedded .welcome-screen { min-height:calc(100dvh - 72px); }
+.repoiq-chat.repoiq-embedded .chat-messages { width:100%; max-width:1100px; }
+.repoiq-chat.repoiq-embedded .sources pre { max-width:100%; overflow:auto; white-space:pre; }
+.repoiq-chat.repoiq-embedded .sources { overflow-wrap:anywhere; min-width:0; }
+.repoiq-chat.repoiq-embedded .report-container { max-width:100%; }
+.repoiq-chat.repoiq-embedded .answer-area { position:sticky; bottom:0; }
+
 @property --frame-angle {
   syntax: "<angle>";
   initial-value: 0deg;
@@ -978,13 +988,19 @@
   font-size: 14px;
 }
 
-.repoiq-chat .report-container {
-  padding: 23px;
-  border-radius: 17px;
 
-  background: white;
-  color: #171536;
+.repoiq-chat .report-container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
 }
+
 
 .repoiq-chat .report-button {
   padding: 12px 19px;

@@ -64,7 +64,7 @@ export default function Hero() {
 
           <div className="rq-hero-actions">
             <Link
-              href="/interview"
+              href="/auth/signup"
               className="rq-button rq-button-main rq-hero-primary"
             >
               <span>Get Started</span>

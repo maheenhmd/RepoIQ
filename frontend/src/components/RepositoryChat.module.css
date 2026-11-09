@@ -1,0 +1,984 @@
+
+/* ========================================
+   REPOIQ - REPOSITORY CHAT
+   Spacious conversation layout
+======================================== */
+
+.chat {
+  width: 100%;
+  max-width: none;
+  min-height: calc(100dvh - 110px);
+  height: auto;
+  margin: 0;
+  padding: 24px clamp(16px, 3vw, 44px) 28px;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  color: #f7f7f8;
+  font-size: 15px;
+  line-height: 1.7;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+/* ========================================
+   HEADER
+======================================== */
+
+.chat > header {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.chat header span {
+  color: #48d5ce;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+.chat h1 {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 6px 0;
+}
+
+.chat header p {
+  margin: 4px 0 0;
+  color: #aeb2bd;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ========================================
+   BUTTONS
+======================================== */
+
+.chat button {
+  border: 0;
+  border-radius: 11px;
+  padding: 10px 16px;
+
+  background: #ff7965;
+  color: #141517;
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.chat button:hover:not(:disabled) {
+  background: #ff9180;
+}
+
+.chat button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat :focus-visible {
+  outline: 2px solid #48d5ce;
+  outline-offset: 3px;
+}
+
+/* ========================================
+   MAIN CONVERSATION
+   No small nested scrollbox
+======================================== */
+
+.conversation {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+
+  flex: 1 0 auto;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+
+  overflow: visible;
+  overscroll-behavior: auto;
+
+  padding: 8px 0 38px;
+  box-sizing: border-box;
+}
+
+/* ========================================
+   MESSAGE GROUPS
+======================================== */
+
+.conversation article {
+  width: 100%;
+  max-width: 850px;
+  margin: 0 auto 32px;
+}
+
+/* USER MESSAGE */
+
+.user {
+  width: fit-content;
+  max-width: min(82%, 650px);
+
+  margin: 12px 0 22px auto;
+  padding: 12px 18px;
+
+  background: #30333b;
+  color: #f7f7f8;
+
+  border-radius: 18px 18px 5px 18px;
+
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ASSISTANT MESSAGE */
+
+.assistant {
+  width: 100%;
+  max-width: 800px;
+  padding: 4px 0 18px;
+
+  color: #e8e9ed;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.assistant > strong {
+  display: inline-block;
+  margin-bottom: 10px;
+
+  color: #48d5ce;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.assistant p {
+  margin: 0 0 14px;
+  color: #e1e3e9;
+  line-height: 1.75;
+  white-space: normal;
+}
+
+/* ========================================
+   MARKDOWN TYPOGRAPHY
+======================================== */
+
+.assistant h1,
+.assistant h2,
+.assistant h3,
+.assistant h4,
+.assistant h5,
+.assistant h6 {
+  color: #f7f7f8;
+  font-weight: 650;
+  line-height: 1.4;
+  margin: 22px 0 10px;
+}
+
+.assistant h1 {
+  font-size: 22px;
+}
+
+.assistant h2 {
+  font-size: 19px;
+}
+
+.assistant h3,
+.assistant h4,
+.assistant h5,
+.assistant h6 {
+  font-size: 16px;
+}
+
+.assistant ul,
+.assistant ol {
+  padding-left: 26px;
+  margin: 12px 0 18px;
+}
+
+.assistant li {
+  margin: 7px 0;
+  padding-left: 3px;
+}
+
+.assistant li::marker {
+  color: #aeb2bd;
+}
+
+.assistant blockquote {
+  margin: 16px 0;
+  padding: 4px 0 4px 16px;
+
+  border-left: 3px solid #48d5ce;
+  color: #c0c3cc;
+}
+
+/* ========================================
+   CODE BLOCKS
+======================================== */
+
+.assistant pre {
+  max-width: 100%;
+  margin: 16px 0 20px;
+  padding: 18px;
+
+  background: #101115;
+  border: 1px solid #3b3d45;
+  border-radius: 12px;
+
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+.assistant code {
+  font-family: ui-monospace, SFMono-Regular,
+    Consolas, monospace;
+  font-size: 13px;
+}
+
+.assistant p code,
+.assistant li code {
+  padding: 3px 6px;
+  background: #30333b;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+}
+
+/* ========================================
+   EMPTY CHAT STATE
+======================================== */
+
+.empty {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 44px 8px;
+
+  color: #a0a5b0;
+}
+
+.empty h2 {
+  color: #f7f7f8;
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+
+.empty p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #aeb2bd;
+}
+
+/* ========================================
+   COMPACT STICKY COMPOSER
+======================================== */
+
+.chat form {
+  position: sticky;
+  bottom: 12px;
+  z-index: 10;
+
+  width: 100%;
+  max-width: 850px;
+  margin: 0 auto;
+
+  flex-shrink: 0;
+  padding: 12px 16px;
+
+  background: #202126;
+  border: 1px solid #41454e;
+  border-radius: 20px;
+
+  box-sizing: border-box;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+
+.chat form:focus-within {
+  border-color: #526467;
+}
+
+.chat form label {
+  display: block;
+  margin-bottom: 4px;
+
+  color: #48d5ce;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.chat textarea {
+  display: block;
+  width: 100%;
+
+  min-height: 42px;
+  max-height: 160px;
+
+  padding: 8px 0;
+  box-sizing: border-box;
+
+  resize: none;
+  overflow-y: auto;
+
+  border: 0;
+  outline: none;
+  background: transparent;
+
+  color: #f7f7f8;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chat textarea::placeholder {
+  color: #858a95;
+}
+
+.chat textarea:focus-visible {
+  outline: none;
+}
+
+.chat form > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.chat form button {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.chat small {
+  color: #a0a5b0;
+  font-size: 11px;
+}
+
+/* ========================================
+   VOICE CONTROLS
+======================================== */
+
+.voicePanel {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+
+  flex-shrink: 0;
+  color: #aeb2bd;
+  font-size: 12px;
+}
+
+.voicePanel summary {
+  display: list-item;
+  width: fit-content;
+  cursor: pointer;
+  color: #aeb2bd;
+}
+
+.voicePanel summary:hover {
+  color: #48d5ce;
+}
+
+.voice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+
+  margin: 10px 0 0;
+  padding: 12px;
+
+  background: #252a30;
+  border: 1px solid #3a5557;
+  border-radius: 14px;
+}
+
+.voice label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice select {
+  padding: 6px 10px;
+
+  background: #16191e;
+  color: #f7f7f8;
+
+  border: 1px solid #666;
+  border-radius: 7px;
+  font: inherit;
+}
+
+.voice button {
+  padding: 7px 12px;
+}
+
+.voice button[aria-pressed="true"] {
+  background: #48d5ce;
+}
+
+.voice small,
+.voice p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* ========================================
+   JUMP TO LATEST
+======================================== */
+
+.jump {
+  position: sticky;
+  bottom: 120px;
+  z-index: 9;
+
+  align-self: center;
+  padding: 8px 16px !important;
+
+  font-size: 12px !important;
+  border-radius: 999px !important;
+
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   ERROR STATES
+======================================== */
+
+.error {
+  width: 100%;
+  max-width: 850px;
+  margin: 0 auto;
+
+  color: #ffb5a5 !important;
+  font-size: 13px;
+}
+
+/* ========================================
+   MOBILE RESPONSIVENESS
+======================================== */
+
+@media (max-width: 600px) {
+  .chat {
+    min-height: calc(100dvh - 80px);
+    padding: 14px 12px 22px;
+    gap: 14px;
+  }
+
+  .chat > header {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .chat header span,
+  .chat header p {
+    display: none;
+  }
+
+  .chat h1 {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  .chat header button {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .conversation {
+    padding: 8px 0 28px;
+  }
+
+  .conversation article {
+    margin-bottom: 24px;
+  }
+
+  .user {
+    max-width: 90%;
+    padding: 10px 14px;
+  }
+
+  .assistant {
+    font-size: 14px;
+    padding: 0 2px 14px;
+  }
+
+  .assistant pre {
+    padding: 12px;
+  }
+
+  .chat form {
+    bottom: 8px;
+    padding: 10px 12px;
+    border-radius: 16px;
+  }
+
+  .chat form > div {
+    flex-wrap: nowrap;
+  }
+
+  .chat form small {
+    font-size: 10px;
+  }
+
+  .jump {
+    bottom: 110px;
+  }
+}
+
+
+
+
+
+
+/* voice */
+
+/* =========================================
+   REPOIQ PREMIUM VOICE ASSISTANT
+========================================= */
+
+.voicePanel {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  flex-shrink: 0;
+
+  border: 1px solid #343941;
+  border-radius: 16px;
+  background: #1c1f24;
+
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.voicePanel:hover {
+  border-color: #495159;
+}
+
+.voicePanel[open] {
+  border-color: #3b5558;
+}
+
+/* HEADER */
+
+.voicePanel .voiceSummary {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  width: 100%;
+  padding: 14px 18px;
+
+  box-sizing: border-box;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.voiceSummary::-webkit-details-marker {
+  display: none;
+}
+
+.voiceSummary::marker {
+  content: "";
+}
+
+.voiceSummaryIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+
+  background: #263637;
+  color: #48d5ce;
+
+  border: 1px solid #345657;
+  border-radius: 12px;
+}
+
+.voiceSummaryText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  flex: 1;
+  min-width: 0;
+}
+
+.voiceSummaryTitle {
+  color: #f5f5f7;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.voiceSummaryDescription {
+  color: #9097a3;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* STATUS INDICATOR */
+
+.voiceStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 6px 10px;
+
+  background: #292c32;
+  border: 1px solid #383c45;
+  border-radius: 999px;
+
+  color: #a7abb5;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.voiceStatusDot {
+  width: 7px;
+  height: 7px;
+
+  background: #838994;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.voiceStatusActive {
+  background: #193634;
+  border-color: #2d6660;
+  color: #68e4dc;
+}
+
+.voiceStatusActive .voiceStatusDot {
+  background: #48d5ce;
+  box-shadow: 0 0 0 3px rgba(72, 213, 206, 0.12);
+}
+
+.voiceChevron {
+  flex-shrink: 0;
+  color: #8b929d;
+  transition: transform 0.2s ease;
+}
+
+.voicePanel[open] .voiceChevron {
+  transform: rotate(180deg);
+}
+
+/* EXPANDED PANEL */
+
+.voicePanel .voice {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  max-height: none;
+  margin: 0;
+  padding: 20px;
+
+  overflow: visible;
+
+  background: #202329;
+  border: 0;
+  border-top: 1px solid #343941;
+  border-radius: 0;
+}
+
+/* INTRO */
+
+.voiceIntro h3 {
+  margin: 0 0 5px;
+  color: #f2f3f5;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.voiceIntro p {
+  margin: 0;
+  color: #a1a6b0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* BUTTON AND LANGUAGE SELECTOR */
+
+.voiceControls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.chat .voiceButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  min-height: 46px;
+  padding: 11px 20px;
+
+  background: #ff7965;
+  border: 1px solid transparent;
+  border-radius: 12px;
+
+  color: #151719;
+  font-size: 13px;
+  font-weight: 650;
+
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.chat .voiceButton:hover:not(:disabled) {
+  background: #ff9381;
+  transform: translateY(-1px);
+}
+
+.chat .voiceButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.chat .voiceButtonActive {
+  background: #352626;
+  border-color: #724340;
+  color: #ff998c;
+}
+
+.chat .voiceButtonActive:hover:not(:disabled) {
+  background: #45302f;
+}
+
+.voicePanel .voiceSelectWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.voiceSelectWrap > span {
+  color: #aab0b9;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.chat .voiceSelect {
+  min-width: 150px;
+  min-height: 44px;
+
+  padding: 9px 34px 9px 12px;
+
+  background: #171a1f;
+  color: #e8e9ed;
+
+  border: 1px solid #444951;
+  border-radius: 10px;
+
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chat .voiceSelect:focus-visible {
+  border-color: #48d5ce;
+  outline: 2px solid #48d5ce;
+  outline-offset: 2px;
+}
+
+.chat .voiceSelect:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ACTIVE VOICE STATE */
+
+.voiceActivity {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+
+  align-self: flex-start;
+  padding: 9px 12px;
+
+  background: #1a3331;
+  border: 1px solid #315b57;
+  border-radius: 9px;
+
+  color: #79e6df;
+  font-size: 12px;
+}
+
+.voiceActivityDot {
+  width: 8px;
+  height: 8px;
+
+  background: #48d5ce;
+  border-radius: 50%;
+
+  box-shadow: 0 0 0 4px rgba(72, 213, 206, 0.13);
+  animation: voicePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes voicePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* LIVE TRANSCRIPT */
+
+.voiceTranscript {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 15px 17px;
+
+  background: #181b20;
+  border: 1px solid #373c44;
+  border-radius: 12px;
+}
+
+.voiceTranscriptHeader {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  margin-bottom: 10px;
+
+  color: #79ddd5;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.3px;
+}
+
+.voiceTranscriptDot {
+  width: 7px;
+  height: 7px;
+  background: #48d5ce;
+  border-radius: 50%;
+}
+
+.voiceTranscript p {
+  margin: 0;
+  color: #dce0e5;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+/* INFORMATION FOOTER */
+
+.voiceFooter {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+
+  padding-top: 15px;
+  border-top: 1px solid #363b43;
+
+  color: #929aa5;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.voiceFooter svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #48d5ce;
+}
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+  .voicePanel {
+    border-radius: 13px;
+  }
+
+  .voicePanel .voiceSummary {
+    padding: 12px;
+    gap: 9px;
+  }
+
+  .voiceSummaryIcon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .voiceSummaryDescription {
+    font-size: 11px;
+  }
+
+  .voiceStatus {
+    padding: 5px 7px;
+    font-size: 10px;
+  }
+
+  .voicePanel .voice {
+    padding: 15px;
+    gap: 16px;
+  }
+
+  .voiceControls {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .chat .voiceButton {
+    width: 100%;
+  }
+
+  .chat .voiceSelect {
+    width: 100%;
+  }
+
+  .voicePanel .voiceSelectWrap {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voiceActivityDot {
+    animation: none;
+  }
+
+  .voiceChevron,
+  .chat .voiceButton {
+    transition: none;
+  }
+}

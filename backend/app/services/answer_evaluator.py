@@ -40,13 +40,7 @@ def apply_policy(draft, state):
         raise ValueError('Correct evaluation contradicts recorded missing concepts')
     if assessment == 'uncertain':
         draft = draft.model_copy(update={'feedback': draft.feedback.model_copy(update={'depth': 'unassessed'})})
-    level = LEVELS.index(state['difficulty'])
-    # Evidence uncertainty is not evidence of poor candidate performance.
-    if assessment == 'incorrect' or is_explicit_non_answer(state['answer']):
-        level = max(0, level - 1)
-    elif assessment == 'correct' and state.get('correct_streak', 0) >= 1:
-        level = min(2, level + 1)
-    updates = {'difficulty': LEVELS[level]}
+    updates = {'difficulty': state['difficulty']}
     if state['must_finish']:
         # Completion is a server limit, not an LLM preference. Feedback/citations
         # are still validated; an unneeded next question is simply not retained.

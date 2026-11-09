@@ -1,4 +1,3 @@
-
 /* =====================================
    REPOIQ — HOW IT WORKS PAGE
 ===================================== */
@@ -8,7 +7,7 @@
   min-height: 100vh;
 }
 
-/* HERO */
+/* HERO - Redesigned */
 
 .rqh-hero {
   position: relative;
@@ -17,11 +16,30 @@
   color: white;
 }
 
+.rqh-hero-background-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
 .rqh-hero-content {
   position: relative;
-  min-height: 530px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 60px;
+  min-height: 540px;
   padding-top: 100px;
   padding-bottom: 100px;
+}
+
+.rqh-hero-text {
+  position: relative;
+  z-index: 2;
 }
 
 .rqh-eyebrow {
@@ -96,72 +114,74 @@
   box-shadow: 0 12px 28px #ff795f50;
 }
 
-/* Hero decorative visual */
+/* New Hero Aside - Minimal terminal aesthetic */
 
-.rqh-hero-decoration {
-  position: absolute;
-  width: 425px;
-  height: 425px;
-  right: 2%;
-  top: 54px;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
+.rqh-hero-aside {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  animation: rqh-reveal .7s ease .2s both;
 }
 
-.rqh-decoration-circle {
-  width: 220px;
-  height: 220px;
-  border-radius: 32%;
-  background: linear-gradient(145deg, #3c386b, #28254e);
-  display: grid;
-  place-items: center;
-  color: #42d7c9;
-  transform: rotate(-13deg);
-  box-shadow: 0 25px 60px #0003;
-  animation: rqh-float 6s ease-in-out infinite;
+.rqh-hero-card {
+  width: 100%;
+  max-width: 440px;
+  background: #211d40;
+  border: 1px solid #393553;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
-.rqh-decoration-orbit {
-  position: absolute;
-  border: 1px solid #8582b74a;
+.rqh-hero-card-topbar {
+  display: flex;
+  gap: 6px;
+  padding: 14px 18px;
+  background: #1a1732;
+  border-bottom: 1px solid #393553;
+}
+
+.rqh-hero-card-dot {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
+  background: #393553;
 }
 
-.rqh-decoration-orbit.orbit-a {
-  width: 350px;
-  height: 350px;
+.rqh-hero-card-body {
+  padding: 24px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 2.1;
 }
 
-.rqh-decoration-orbit.orbit-b {
-  width: 420px;
-  height: 260px;
-  transform: rotate(-35deg);
+.rqh-hero-card-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-.rqh-decoration-dot {
-  position: absolute;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
+.rqh-hero-card-prompt {
+  color: #44d9c9;
 }
 
-.rqh-decoration-dot.dot-a {
-  background: #ff795f;
-  top: 35px;
-  right: 110px;
+.rqh-hero-card-success {
+  color: #2dd6be;
 }
 
-.rqh-decoration-dot.dot-b {
-  background: #44d9c9;
-  bottom: 65px;
-  left: 22px;
+.rqh-hero-card-text {
+  color: #a8a4c4;
 }
 
-.rqh-decoration-dot.dot-c {
-  background: #d28af7;
-  right: 23px;
-  bottom: 110px;
+.rqh-hero-card-cursor {
+  display: inline-block;
+  color: #ff8069;
+  animation: rqh-blink 1s step-end infinite;
+}
+
+@keyframes rqh-blink {
+  50% { opacity: 0; }
 }
 
 /* INTRO */
@@ -515,22 +535,20 @@
   }
 }
 
-@keyframes rqh-float {
-  0%, 100% {
-    transform: translateY(0) rotate(-13deg);
-  }
-
-  50% {
-    transform: translateY(-15px) rotate(-10deg);
-  }
-}
-
 /* RESPONSIVE */
 
 @media (max-width: 1000px) {
-  .rqh-hero-decoration {
-    opacity: .4;
-    right: -100px;
+  .rqh-hero-content {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .rqh-hero-aside {
+    justify-content: flex-start;
+  }
+  
+  .rqh-hero-card {
+    max-width: 100%;
   }
 
   .rqh-example-layout {
@@ -543,11 +561,6 @@
     min-height: auto;
     padding-top: 80px;
     padding-bottom: 85px;
-  }
-
-  .rqh-hero-decoration {
-    right: -220px;
-    opacity: .2;
   }
 
   .rqh-hero h1 {
@@ -628,7 +641,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rqh-hero h1,
-  .rqh-decoration-circle {
+  .rqh-hero-aside {
+    animation: none;
+  }
+
+  .rqh-hero-card-cursor {
     animation: none;
   }
 

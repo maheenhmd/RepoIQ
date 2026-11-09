@@ -1,4 +1,3 @@
-
 import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/landing/Navbar";
@@ -96,42 +95,63 @@ export default function HowItWorksPage() {
       <Navbar />
 
       <main>
-        {/* HERO */}
+        {/* HERO - Redesigned */}
         <section className="rqh-hero">
+          <div className="rqh-hero-background-grid" aria-hidden="true"></div>
           <div className="rq-shell rqh-hero-content">
-            <span className="rqh-eyebrow">
-              <span className="rqh-eyebrow-dot" />
-              THE PROCESS
-            </span>
+            <div className="rqh-hero-text">
+              <span className="rqh-eyebrow">
+                <span className="rqh-eyebrow-dot" />
+                THE PROCESS
+              </span>
 
-            <h1>
-              Your code.
-              <br />
-              Your interview.
-              <br />
-              <span>Your growth.</span>
-            </h1>
+              <h1>
+                Your code.
+                <br />
+                Your interview.
+                <br />
+                <span>Your growth.</span>
+              </h1>
 
-            <p>
-              Discover how RepoIQ transforms an ordinary
-              GitHub repository into a personalized
-              technical interview experience.
-            </p>
+              <p>
+                Discover how RepoIQ transforms an ordinary
+                GitHub repository into a personalized
+                technical interview experience.
+              </p>
 
-            <Link href="#process" className="rqh-hero-button">
-              Explore the process
-              <Icon name="arrow" size={18} />
-            </Link>
-
-            <div className="rqh-hero-decoration" aria-hidden="true">
-              <div className="rqh-decoration-circle">
-                <Icon name="code" size={65} />
+              <Link href="#process" className="rqh-hero-button">
+                Explore the process
+                <Icon name="arrow" size={18} />
+              </Link>
+            </div>
+            
+            <div className="rqh-hero-aside" aria-hidden="true">
+              <div className="rqh-hero-card">
+                <div className="rqh-hero-card-topbar">
+                  <span className="rqh-hero-card-dot" />
+                  <span className="rqh-hero-card-dot" />
+                  <span className="rqh-hero-card-dot" />
+                </div>
+                <div className="rqh-hero-card-body">
+                  <div className="rqh-hero-card-line">
+                    <span className="rqh-hero-card-prompt">&gt;</span>
+                    <span className="rqh-hero-card-text">Analyzing repository...</span>
+                  </div>
+                  <div className="rqh-hero-card-line">
+                    <span className="rqh-hero-card-success">✓</span>
+                    <span className="rqh-hero-card-text">Found 12 relevant files</span>
+                  </div>
+                  <div className="rqh-hero-card-line">
+                    <span className="rqh-hero-card-success">✓</span>
+                    <span className="rqh-hero-card-text">Indexed 48 code symbols</span>
+                  </div>
+                  <div className="rqh-hero-card-line">
+                    <span className="rqh-hero-card-prompt">&gt;</span>
+                    <span className="rqh-hero-card-text">Ready for interview.</span>
+                    <span className="rqh-hero-card-cursor">_</span>
+                  </div>
+                </div>
               </div>
-              <span className="rqh-decoration-orbit orbit-a" />
-              <span className="rqh-decoration-orbit orbit-b" />
-              <span className="rqh-decoration-dot dot-a" />
-              <span className="rqh-decoration-dot dot-b" />
-              <span className="rqh-decoration-dot dot-c" />
             </div>
           </div>
         </section>
@@ -295,7 +315,7 @@ export default function HowItWorksPage() {
             </p>
           </div>
 
-          <Link href="/interview" className="rqh-bottom-button">
+          <Link href="/auth/signup" className="rqh-bottom-button">
             Start practicing
             <Icon name="arrow" size={19} />
           </Link>

@@ -54,7 +54,7 @@ export default function Footer() {
           </div>
 
           <Link
-            href="/interview"
+            href="/auth/signup"
             className="rq-footer-cta"
           >
             Start practicing

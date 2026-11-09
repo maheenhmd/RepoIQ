@@ -58,7 +58,7 @@ export default function Quote() {
           </div>
 
           <Link
-            href="/interview"
+            href="/auth/signup"
             className="rq-live-start"
           >
             Experience it yourself

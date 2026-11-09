@@ -2,7 +2,7 @@
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, PrivateAttr
 
 Difficulty = Literal['beginner', 'intermediate', 'advanced']
 Action = Literal['ask', 'follow_up', 'change_topic', 'finish']
@@ -40,9 +40,17 @@ class CandidateAnswer(BaseModel):
 
 class Feedback(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
+
+    @model_validator(mode='before')
+    @classmethod
+    def accept_old_feedback(cls, data):
+        if isinstance(data, dict):
+            data = data.copy()
+            data.pop('evaluated', None)
+        return data
+
     assessment: Literal['correct', 'partial', 'incorrect', 'uncertain']
     rationale: str = Field(min_length=10, max_length=1500)
-    # Optional for old saved turns and existing clients. Never infer depth from length.
     depth: Literal['unassessed', 'surface', 'reasoned', 'detailed'] = 'unassessed'
     missed_concepts: list[Annotated[str, Field(min_length=1, max_length=160)]] = Field(default_factory=list, max_length=3)
 
@@ -116,7 +124,18 @@ class InterviewReport(BaseModel):
     score_explanation: str
 
 
+class QuestionPlan(BaseModel):
+    """Server-only generation result, stored inside turn JSON, never API fields."""
+    model_config = ConfigDict(extra='forbid', strict=True)
+    question: str = Field(min_length=10, max_length=500)
+    reference_answer: str = Field(min_length=10, max_length=600)
+    rubric: list[Annotated[str, Field(min_length=5, max_length=180)]] = Field(min_length=1, max_length=3)
+    source_ids: list[str] = Field(min_length=1, max_length=3)
+    evidence_quote: str = Field(min_length=5, max_length=220)
+
+
 class InterviewResponse(BaseModel):
+    _internal: dict = PrivateAttr(default_factory=dict)
     session_id: UUID
     repository_id: UUID
     commit_sha: str

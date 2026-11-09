@@ -1,32 +1,691 @@
-'use client';
-import type { Report } from '@/types';
-import { Sources } from './QuestionCard';
 
-export default function InterviewReport({ report }: { report: Report }) {
-  const score = report.overall_score;
-  const valid = score !== null && Number.isFinite(score) && score >= 0 && score <= 100;
-  const value = valid ? score! : 0;
-  const celebration = valid && value >= 85;
-  const message = !valid ? 'Your practice, reflected.' : celebration ? 'Strong work. Keep exploring.' : value >= 65 ? 'You’re building real understanding.' : 'Every attempt is a step forward.';
-  return <section className="iq-report" aria-label="Interview performance report">
-    <div className="report-intro"><span className="report-kicker">PRACTICE / REFLECTION / PROGRESS</span><h2>{message}</h2><p>{report.summary}</p></div>
-    {celebration && <div className="report-confetti" aria-hidden="true">🎉 <i>▪</i> <i>◆</i> <i>▪</i> <i>◆</i></div>}
-    {valid && value >= 65 && value < 85 && <p aria-hidden="true">✨ A thoughtful foundation to build on.</p>}
-    <div className="report-overview"><div className="report-ring" role="img" aria-label={valid ? `Practice score ${score} out of 100` : 'Score unavailable'}>
-      <svg viewBox="0 0 120 120" aria-hidden="true"><circle className="ring-track" cx="60" cy="60" r="52" /><circle className="ring-value" cx="60" cy="60" r="52" pathLength="100" strokeDasharray={`${value} 100`} /></svg>
-      <div><strong>{valid ? score : '—'}</strong><span>out of 100</span></div></div>
-      <div><h3>What your answers demonstrated</h3><p>AI-generated practice feedback, not a hiring assessment.</p><div className="assessment-list">{Object.entries(report.assessment_counts).map(([label, count]) => <span key={label}><b>{count}</b> {label}</span>)}</div></div></div>
-    <section><h3>Topic breakdown</h3>{report.topics.map((topic, index) => <div className="topic-performance" key={`${topic.topic}-${index}`}><div><strong>{topic.topic}</strong><span>{topic.correctness_score}/100</span></div><progress value={topic.correctness_score} max={100} aria-label={`${topic.topic} correctness`} /><small>Depth: {topic.depth_score === null ? 'Not assessed' : `${topic.depth_score}/100`}</small></div>)}</section>
-    <div className="report-findings">{(['strengths', 'weaknesses', 'recommendations'] as const).map(key => <section key={key}><h3>{key === 'weaknesses' ? 'Room to grow' : key === 'recommendations' ? 'Your next steps' : 'Strengths'}</h3>{report[key].length ? <ul>{report[key].map((text, index) => <li key={index}>{text}</li>)}</ul> : <p>No recorded findings.</p>}</section>)}</div>
-    <details className="report-evidence"><summary>Explore the evidence & scoring rubric</summary><p>{report.score_explanation}</p>{report.evaluations.map(item => <div key={item.turn}><h4>Answer {item.turn}</h4><Sources sources={item.sources} /></div>)}</details>
-    <div className="report-actions"><a href="/interview?new=1">Start New Interview ↗</a><button type="button" onClick={() => window.print()}>Print / save report</button></div>
-    <style jsx>{`
-      .iq-report{position:relative;overflow:hidden;background:#202125;color:#f7f7f8;border:1px solid #41434a;border-radius:24px;padding:clamp(20px,4vw,44px);line-height:1.65}
-      .report-kicker{font-size:10px;letter-spacing:2px;color:#35d8c7}.report-intro h2{font-size:clamp(24px,3vw,36px);line-height:1.2;margin:16px 0}.iq-report p,.iq-report small{color:#c1c3cb}
-      .report-overview{display:flex;gap:32px;align-items:center;padding:24px 0;border-bottom:1px solid #41434a}.report-ring{position:relative;width:160px;min-width:160px;height:160px}.report-ring svg{width:100%;height:100%;transform:rotate(-90deg)}circle{fill:none;stroke-width:7}.ring-track{stroke:#393b43}.ring-value{stroke:#35d8c7;stroke-linecap:round;animation:ring-in 1s ease-out}.report-ring>div{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center}.report-ring strong{font-size:42px;line-height:1.2}.report-ring span{font-size:12px;color:#b9bbc5}
-      .assessment-list{display:flex;gap:12px;flex-wrap:wrap;font-size:13px}.topic-performance{margin:20px 0}.topic-performance>div{display:flex;justify-content:space-between;gap:20px}.topic-performance progress{width:100%;height:8px;accent-color:#35d8c7}.report-findings{display:grid;grid-template-columns:1fr 1fr;gap:24px}.report-findings section:last-child{grid-column:1/-1}.report-findings ul{padding-left:20px}.report-findings li{margin:12px 0}.report-evidence{border-top:1px solid #41434a;padding:20px 0}.report-evidence summary{cursor:pointer;font-weight:600}.report-actions{display:flex;flex-wrap:wrap;gap:12px}.report-actions a,.report-actions button{background:#ff785f;color:#171536;padding:12px 18px;border:0;border-radius:10px;text-decoration:none;font:inherit;cursor:pointer}.report-actions button{background:#393b43;color:#fff}.iq-report :focus-visible{outline:3px solid #35d8c7;outline-offset:4px}.report-confetti{position:absolute;right:24px;top:12px;pointer-events:none}.report-confetti i{display:inline-block;color:#ff785f;margin:0 6px;animation:confetti 1.5s ease-out both}.report-confetti i:nth-child(even){color:#35d8c7;animation-delay:.15s}
-      @keyframes ring-in{from{stroke-dasharray:0 100}}@keyframes confetti{from{transform:translateY(-30px) rotate(0);opacity:0}to{transform:translateY(12px) rotate(140deg);opacity:1}}
-      @media(max-width:600px){.report-overview{flex-direction:column;align-items:flex-start}.report-findings{grid-template-columns:1fr}.report-confetti{position:static}}@media(prefers-reduced-motion:reduce){.ring-value,.report-confetti i{animation:none}}@media print{.report-actions,.report-confetti{display:none}.iq-report{background:white;color:black}.iq-report p{color:#333}}
-    `}</style>
-  </section>;
+"use client";
+
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import Link from "next/link";
+import type { Report } from "@/types";
+import { Sources } from "./QuestionCard";
+import styles from "./InterviewReport.module.css";
+
+type Mood = "excellent" | "great" | "growing" | "practice";
+
+const confettiPieces = Array.from({ length: 28 }, (_, i) => ({
+  left: `${(i * 37 + 13) % 100}%`,
+  delay: `${(i % 9) * 0.13}s`,
+  duration: `${2.2 + (i % 5) * 0.3}s`,
+}));
+
+const moods = {
+  excellent: {
+    emoji: "🏆",
+    eyebrow: "OUTSTANDING PERFORMANCE",
+    title: "You absolutely crushed it!",
+    subtitle:
+      "Your hard work is showing. Celebrate this milestone, then keep pushing your limits.",
+    badge: "Excellent performance",
+  },
+  great: {
+    emoji: "✨",
+    eyebrow: "GREAT PROGRESS",
+    title: "Look at you growing!",
+    subtitle:
+      "You are building stronger technical understanding with every challenge.",
+    badge: "Strong progress",
+  },
+  growing: {
+    emoji: "🚀",
+    eyebrow: "PROGRESS IN MOTION",
+    title: "You're getting there!",
+    subtitle:
+      "Every question you explored is helping you become a more confident engineer.",
+    badge: "Keep building",
+  },
+  practice: {
+    emoji: "🌱",
+    eyebrow: "YOUR GROWTH STARTS HERE",
+    title: "Every expert was once a beginner.",
+    subtitle:
+      "This is a learning checkpoint, not a judgment. You now have a clearer path forward.",
+    badge: "An opportunity to grow",
+  },
+};
+
+function validScore(value: number | null | undefined): number | null {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < 0 ||
+    value > 100
+  ) {
+    return null;
+  }
+
+  return Math.round(value);
+}
+
+function getMood(score: number | null): Mood {
+  if (score === null) return "practice";
+  if (score >= 85) return "excellent";
+  if (score >= 65) return "great";
+  if (score >= 40) return "growing";
+  return "practice";
+}
+
+function FindingCard({
+  icon,
+  title,
+  items,
+  kind,
+}: {
+  icon: string;
+  title: string;
+  items: string[];
+  kind: "strength" | "growth" | "next";
+}) {
+  return (
+    <section className={`${styles.findingCard} ${styles[kind]}`}>
+      <div className={styles.findingHeader}>
+        <span className={styles.findingIcon} aria-hidden="true">
+          {icon}
+        </span>
+        <h3>{title}</h3>
+      </div>
+
+      {items.length > 0 ? (
+        <ul className={styles.findingList}>
+          {items.map((item, index) => (
+            <li key={`${kind}-${index}`}>
+              <span className={styles.listMarker} aria-hidden="true">
+                {kind === "strength" ? "✦" : "↗"}
+              </span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={styles.empty}>
+          {kind === "strength"
+            ? "No specific strengths were recorded."
+            : kind === "growth"
+              ? "No specific improvement areas were recorded."
+              : "No additional recommendations were recorded."}
+        </p>
+      )}
+    </section>
+  );
+}
+
+export default function InterviewReport({
+  report,
+}: {
+  report: Report;
+}) {
+  const reportRef = useRef<HTMLElement>(null);
+
+  const [animate, setAnimate] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+
+  const score = validScore(report.overall_score);
+  const mood = getMood(score);
+  const content = moods[mood];
+
+  const celebratory = mood === "excellent";
+  const sparkly = mood === "great";
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setAnimate(true), 100);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const countItems = Object.entries(report.assessment_counts ?? {});
+
+  const totalAnswers = countItems.reduce(
+    (total, [, count]) =>
+      total + (Number.isFinite(count) ? count : 0),
+    0
+  );
+
+  const ringStyle = {
+    "--score": score ?? 0,
+  } as CSSProperties;
+
+  // PDF DOWNLOAD
+
+async function downloadReportPDF() {
+  const element = reportRef.current;
+  if (!element || exporting) return;
+
+  setExporting(true);
+  setExportError("");
+
+  try {
+    const [{ toCanvas }, { jsPDF }] = await Promise.all([
+      import("html-to-image"),
+      import("jspdf"),
+    ]);
+
+    await document.fonts.ready;
+
+    const canvas = await toCanvas(element, {
+      backgroundColor: "#1b1d26",
+      pixelRatio: 2,
+      cacheBust: true,
+      filter: (node) => {
+        if (
+          node instanceof HTMLElement &&
+          node.dataset.pdfExclude === "true"
+        ) {
+          return false;
+        }
+        return true;
+      },
+    });
+
+    if (!canvas.width || !canvas.height) {
+      throw new Error("Report capture is empty.");
+    }
+
+    // One continuous PDF page matching the report's aspect ratio.
+    const pageWidth = 210;
+    const margin = 6;
+
+    const imageWidth = pageWidth - margin * 2;
+    const imageHeight =
+      (canvas.height / canvas.width) * imageWidth;
+
+    const pageHeight = imageHeight + margin * 2;
+
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: [pageWidth, pageHeight],
+      compress: true,
+    });
+
+    const image = canvas.toDataURL("image/png");
+
+    pdf.addImage(
+      image,
+      "PNG",
+      margin,
+      margin,
+      imageWidth,
+      imageHeight
+    );
+
+    pdf.save("RepoIQ-Interview-Report.pdf");
+  } catch (error) {
+    console.error("PDF export failed:", error);
+    setExportError(
+      "Could not generate the PDF. Please try again."
+    );
+  } finally {
+    setExporting(false);
+  }
+}
+
+
+  return (
+    <section
+      ref={reportRef}
+      className={`${styles.report} ${styles[mood]}`}
+      aria-label="RepoIQ interview performance report"
+    >
+      {/* Animated confetti */}
+      {animate && celebratory && (
+        <div
+          className={styles.confetti}
+          data-pdf-exclude="true"
+          aria-hidden="true"
+        >
+          {confettiPieces.map((piece, index) => (
+            <span
+              key={index}
+              style={{
+                left: piece.left,
+                animationDelay: piece.delay,
+                animationDuration: piece.duration,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Ambient lighting */}
+      <div className={styles.backgroundGlow} aria-hidden="true">
+        <span className={styles.orbOne} />
+        <span className={styles.orbTwo} />
+      </div>
+
+      {/* Hero */}
+      <header className={styles.hero}>
+        <div className={styles.eyebrow}>
+          <span className={styles.eyebrowDot} />
+          REPOIQ / INTERVIEW COMPLETE
+        </div>
+
+        <div
+          className={`${styles.heroEmoji} ${
+            animate ? styles.emojiAnimated : ""
+          }`}
+          aria-hidden="true"
+        >
+          {content.emoji}
+        </div>
+
+        {(celebratory || sparkly) && (
+          <div className={styles.sparkleField} aria-hidden="true">
+            <span>✦</span>
+            <span>✧</span>
+            <span>✦</span>
+            <span>✧</span>
+          </div>
+        )}
+
+        <p className={styles.heroKicker}>
+          {content.eyebrow}
+        </p>
+
+        <h2>{content.title}</h2>
+
+        <p className={styles.heroDescription}>
+          {content.subtitle}
+        </p>
+
+        <span className={styles.achievementBadge}>
+          <span aria-hidden="true">
+            {celebratory ? "🏅" : sparkly ? "💫" : "🌿"}
+          </span>
+          {content.badge}
+        </span>
+      </header>
+
+      {/* Score section */}
+      <section
+        className={styles.scorePanel}
+        aria-label="Overall score"
+      >
+        <div className={styles.scoreRing} style={ringStyle}>
+          <svg
+            viewBox="0 0 160 160"
+            className={styles.ringSvg}
+            aria-hidden="true"
+          >
+            <circle
+              className={styles.ringTrack}
+              cx="80"
+              cy="80"
+              r="69"
+              pathLength="100"
+            />
+
+            <circle
+              className={`${styles.ringProgress} ${
+                animate ? styles.ringAnimated : ""
+              }`}
+              cx="80"
+              cy="80"
+              r="69"
+              pathLength="100"
+              strokeDasharray={`${score ?? 0} 100`}
+            />
+          </svg>
+
+          <div className={styles.scoreCenter}>
+            <strong className={styles.scoreValue}>
+              {score === null ? "—" : score}
+            </strong>
+
+            <span className={styles.scoreTotal}>
+              {score === null
+                ? "Not scored"
+                : "out of 100"}
+            </span>
+          </div>
+        </div>
+
+        <div className={styles.scoreDetails}>
+          <span className={styles.sectionEyebrow}>
+            YOUR PERFORMANCE SNAPSHOT
+          </span>
+
+          <h3>
+            {score === null
+              ? "Your answers have been recorded."
+              : score >= 85
+                ? "A milestone worth celebrating."
+                : score >= 65
+                  ? "A strong foundation to build on."
+                  : "Your next chapter starts here."}
+          </h3>
+
+          <p>{report.summary}</p>
+
+          <p className={styles.scoreDisclaimer}>
+            AI-generated practice assessment, not a
+            professional hiring evaluation.
+          </p>
+        </div>
+      </section>
+
+      {/* Answer statistics */}
+      <section className={styles.statsSection}>
+        <div className={styles.sectionHeading}>
+          <div>
+            <span className={styles.sectionEyebrow}>
+              BY THE NUMBERS
+            </span>
+            <h3>Your interview at a glance</h3>
+          </div>
+        </div>
+
+        <div className={styles.statsGrid}>
+          <div className={styles.statCard}>
+            <span
+              className={styles.statIcon}
+              aria-hidden="true"
+            >
+              🎯
+            </span>
+            <strong>{totalAnswers}</strong>
+            <span>Answers assessed</span>
+          </div>
+
+          {countItems.map(([name, count]) => (
+            <div className={styles.statCard} key={name}>
+              <span
+                className={styles.statIcon}
+                aria-hidden="true"
+              >
+                {name === "correct"
+                  ? "✅"
+                  : name === "partial"
+                    ? "🧩"
+                    : name === "incorrect"
+                      ? "📚"
+                      : "🔎"}
+              </span>
+
+              <strong>{count}</strong>
+              <span>
+                {name.charAt(0).toUpperCase() +
+                  name.slice(1)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Topic performance */}
+      <section className={styles.topicsSection}>
+        <div className={styles.sectionHeading}>
+          <div>
+            <span className={styles.sectionEyebrow}>
+              YOUR KNOWLEDGE MAP
+            </span>
+            <h3>Topic performance</h3>
+          </div>
+
+          <span
+            className={styles.sectionEmoji}
+            aria-hidden="true"
+          >
+            📊
+          </span>
+        </div>
+
+        {report.topics.length > 0 ? (
+          <div className={styles.topicList}>
+            {report.topics.map((topic, index) => {
+              const topicScore = validScore(
+                topic.correctness_score
+              );
+
+              const depth = validScore(
+                topic.depth_score
+              );
+
+              return (
+                <article
+                  className={styles.topicCard}
+                  key={`${topic.topic}-${index}`}
+                >
+                  <div className={styles.topicTop}>
+                    <div className={styles.topicInfo}>
+                      <span
+                        className={styles.topicNumber}
+                      >
+                        TOPIC{" "}
+                        {String(index + 1).padStart(
+                          2,
+                          "0"
+                        )}
+                      </span>
+
+                      <h4>{topic.topic}</h4>
+                    </div>
+
+                    <strong
+                      className={styles.topicScore}
+                    >
+                      {topicScore === null
+                        ? "—"
+                        : `${topicScore}%`}
+                    </strong>
+                  </div>
+
+                  <div
+                    className={styles.progressTrack}
+                    role="progressbar"
+                    aria-label={`${topic.topic} correctness`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={
+                      topicScore ?? undefined
+                    }
+                    aria-valuetext={
+                      topicScore === null
+                        ? "Not assessed"
+                        : `${topicScore} out of 100`
+                    }
+                  >
+                    <div
+                      className={styles.progressFill}
+                      style={{
+                        width: animate
+                          ? `${topicScore ?? 0}%`
+                          : "0%",
+                      }}
+                    />
+                  </div>
+
+                  <div className={styles.topicFooter}>
+                    <span>Correctness</span>
+                    <span>
+                      Depth:{" "}
+                      {depth === null
+                        ? "Not assessed"
+                        : `${depth}/100`}
+                    </span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className={styles.emptyPanel}>
+            No topic-level assessments available.
+          </div>
+        )}
+      </section>
+
+      {/* Personalized findings */}
+      <section className={styles.findingsSection}>
+        <div className={styles.sectionHeading}>
+          <div>
+            <span className={styles.sectionEyebrow}>
+              PERSONALIZED REFLECTION
+            </span>
+
+            <h3>
+              What this interview revealed
+            </h3>
+          </div>
+
+          <span
+            className={styles.sectionEmoji}
+            aria-hidden="true"
+          >
+            💡
+          </span>
+        </div>
+
+        <div className={styles.findingsGrid}>
+          <FindingCard
+            icon="💎"
+            title="Your strengths"
+            items={report.strengths}
+            kind="strength"
+          />
+
+          <FindingCard
+            icon="🌱"
+            title="Opportunities to grow"
+            items={report.weaknesses}
+            kind="growth"
+          />
+        </div>
+
+        <FindingCard
+          icon="🧭"
+          title="Your next steps"
+          items={report.recommendations}
+          kind="next"
+        />
+      </section>
+
+      {/* Encouragement */}
+      <aside className={styles.motivation}>
+        <div
+          className={styles.motivationIcon}
+          aria-hidden="true"
+        >
+          💜
+        </div>
+
+        <div>
+          <h3>
+            One interview doesn't define your potential.
+          </h3>
+          <p>
+            The important part is showing up,
+            learning from your answers, and
+            coming back a little stronger every time.
+          </p>
+        </div>
+      </aside>
+
+      {/* Evidence and scoring */}
+      <details className={styles.evidence}>
+        <summary className={styles.evidenceSummary}>
+          <span className={styles.evidenceTitle}>
+            <span aria-hidden="true">⌘</span>
+            Evidence & scoring details
+          </span>
+
+          <span
+            className={styles.expandIcon}
+            aria-hidden="true"
+          >
+            ⌄
+          </span>
+        </summary>
+
+        <div className={styles.evidenceContent}>
+          <h3>How your answers were assessed</h3>
+
+          <p>
+            {report.score_explanation ||
+              "No detailed scoring explanation was recorded."}
+          </p>
+
+          {report.evaluations.map(
+            (evaluation, index) => (
+              <section
+                key={`${evaluation.turn}-${index}`}
+                className={styles.evaluation}
+              >
+                <h4>Answer {evaluation.turn}</h4>
+
+                {evaluation.sources.length > 0 ? (
+                  <Sources
+                    sources={evaluation.sources}
+                  />
+                ) : (
+                  <p>
+                    No code references recorded
+                    for this answer.
+                  </p>
+                )}
+              </section>
+            )
+          )}
+        </div>
+      </details>
+
+      {/* Buttons — excluded from PDF */}
+      <footer
+        className={styles.actions}
+        data-pdf-exclude="true"
+      >
+        <Link
+          href="/interview?new=1"
+          className={styles.primaryButton}
+        >
+          <span aria-hidden="true">✦</span>
+          Practice Again
+          <span aria-hidden="true">↗</span>
+        </Link>
+
+        <Link
+          href="/dashboard"
+          className={styles.secondaryButton}
+        >
+          Back to Dashboard
+        </Link>
+
+        <button
+          type="button"
+          className={styles.printButton}
+          onClick={() => void downloadReportPDF()}
+          disabled={exporting}
+        >
+          {exporting
+            ? "Generating PDF..."
+            : "↓ Download PDF"}
+        </button>
+      </footer>
+
+      {exportError && (
+        <p
+          role="alert"
+          className={styles.exportError}
+          data-pdf-exclude="true"
+        >
+          {exportError}
+        </p>
+      )}
+
+      <p className={styles.closingLine}>
+        Keep learning. Keep building.
+        Keep becoming. ✨
+      </p>
+    </section>
+  );
 }

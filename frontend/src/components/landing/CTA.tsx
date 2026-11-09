@@ -6,7 +6,7 @@ import "./landingstyles/CTA.css";
 export default function CTA() {
   return (
     <section className="rq-cta rq-shell">
-      <h2>
+      <h2 bg-color="teal">
         Turn Your Code into
         <br />
         Interview-Ready Skills
@@ -18,7 +18,7 @@ export default function CTA() {
       </p>
 
       <Link
-        href="/interview"
+        href="/auth/signup"
         className="rq-button rq-button-main"
       >
         Get Started with RepoIQ
